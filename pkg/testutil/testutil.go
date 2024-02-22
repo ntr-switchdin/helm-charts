@@ -2,9 +2,9 @@ package testutil
 
 import (
 	"context"
+	"flag"
 	"testing"
 	"time"
-	"flag"
 )
 
 var retain = flag.Bool("retain", false, "if true, no clean up will be performed.")
@@ -15,6 +15,16 @@ func Retain() bool {
 	return *retain
 }
 
+// MaybeCleanup is helper to invoke `fn` within a [testing.T.Cleanup] closure
+// only if [Retain] returns false.
+func MaybeCleanup(t *testing.T, fn func()) {
+	t.Cleanup(func() {
+		if Retain() {
+			return
+		}
+		fn()
+	})
+}
 
 // Context returns a [context.Context] that will cancel 1s before the t's
 // deadline.
