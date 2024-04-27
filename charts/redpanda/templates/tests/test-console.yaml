@@ -34,7 +34,7 @@ spec:
   imagePullSecrets: {{- toYaml . | nindent 4 }}
   {{- end }}
   containers:
-    - name: {{ template "redpanda.name" . }}
+    - name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
       image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
       command:
       - /usr/bin/timeout

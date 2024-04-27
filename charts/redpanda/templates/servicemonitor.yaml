@@ -49,6 +49,6 @@ spec:
   selector:
     matchLabels:
       monitoring.redpanda.com/enabled: "true"
-      app.kubernetes.io/name: {{ template "redpanda.name" . }}
+      app.kubernetes.io/name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
       app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end }}

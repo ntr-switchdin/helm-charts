@@ -45,9 +45,9 @@ spec:
     metadata:
       name: "{{ .Release.Name }}"
       labels:
-        app.kubernetes.io/name: {{ template "redpanda.name" . }}
+        app.kubernetes.io/name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
-        app.kubernetes.io/component: {{ (include "redpanda.name" .) | trunc 50  }}-post-upgrade
+        app.kubernetes.io/component: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" | trunc 50  }}-post-upgrade
 {{- with .Values.commonLabels }}
   {{- toYaml . | nindent 8 }}
 {{- end }}
@@ -68,7 +68,7 @@ spec:
       imagePullSecrets: {{- toYaml . | nindent 8 }}
     {{- end }}
       containers:
-      - name: {{ template "redpanda.name" . }}-post-upgrade
+      - name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}-post-upgrade
         image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
         command: ["/bin/bash", "-c"]
         args:

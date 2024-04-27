@@ -37,7 +37,7 @@ spec:
   imagePullSecrets: {{- toYaml . | nindent 4 }}
   {{- end }}
   containers:
-    - name: {{ template "redpanda.name" . }}
+    - name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
       image: mintel/docker-alpine-bash-curl-jq:latest
       command:
         - bash

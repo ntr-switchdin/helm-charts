@@ -136,7 +136,7 @@ spec:
           resources: {{- toYaml .Values.statefulset.initContainers.setTieredStorageCacheDirOwnership.resources | nindent 12 }}
   {{- end }}
 {{- end }}
-        - name: {{ (include "redpanda.name" .) | trunc 51 }}-configurator
+        - name: {{ (get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r") | trunc 51 }}-configurator
           image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
           command:
             - /bin/bash
@@ -176,7 +176,7 @@ spec:
   {{ tpl .Values.statefulset.initContainers.extraInitContainers . | nindent 8 }}
 {{- end }}
       containers:
-        - name: {{ template "redpanda.name" . }}
+        - name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
           image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
           env: {{ get ((include "redpanda.StatefulSetRedpandaEnv" (dict "a" (list .))) | fromJson) "r" | toYaml | nindent 12 }}
           # finish the lifecycle scripts with "true" to prevent them from terminating the pod prematurely
@@ -405,9 +405,9 @@ spec:
     - metadata:
         name: datadir
         labels:
-          app.kubernetes.io/name: {{ template "redpanda.name" . }}
+          app.kubernetes.io/name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
           app.kubernetes.io/instance: {{ .Release.Name | quote }}
-          app.kubernetes.io/component: {{ template "redpanda.name" . }}
+          app.kubernetes.io/component: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
   {{- with .Values.storage.persistentVolume.labels }}
     {{- toYaml . | nindent 10 }}
   {{- end }}
@@ -434,9 +434,9 @@ spec:
     - metadata:
         name: {{ default "tiered-storage-dir" .Values.storage.persistentVolume.nameOverwrite }}
         labels:
-          app.kubernetes.io/name: {{ template "redpanda.name" . }}
+          app.kubernetes.io/name: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
           app.kubernetes.io/instance: {{ .Release.Name | quote }}
-          app.kubernetes.io/component: {{ template "redpanda.name" . }}
+          app.kubernetes.io/component: {{ get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
   {{- with (include "storage-tiered-persistentvolume" . | fromJson).labels }}
     {{ toYaml . | nindent 10 }}
   {{- end }}

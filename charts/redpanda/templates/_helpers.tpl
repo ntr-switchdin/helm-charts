@@ -14,12 +14,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */}}
-{{/*
-Expand the name of the chart.
-*/}}
-{{- define "redpanda.name" -}}
-{{- get ((include "redpanda.Name" (dict "a" (list .))) | fromJson) "r" }}
-{{- end -}}
 
 {{/*
 Create a default fully qualified app name.
