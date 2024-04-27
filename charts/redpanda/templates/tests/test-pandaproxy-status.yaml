@@ -59,13 +59,13 @@ spec:
           {{- if or (include "sasl-enabled" .|fromJson).bool .Values.listeners.http.authenticationMethod }}
           -u ${RPK_USER}:${RPK_PASS} \
           {{- end }}
-          http://{{ include "redpanda.servicename" . }}:{{ .Values.listeners.http.port }}/brokers
+          http://{{ get ((include "redpanda.ServiceName" (dict "a" (list .))) | fromJson) "r" }}:{{ .Values.listeners.http.port }}/brokers
 
           curl {{ template "curl-options" . }} \
           {{- if or (include "sasl-enabled" .|fromJson).bool .Values.listeners.http.authenticationMethod }}
           -u ${RPK_USER}:${RPK_PASS} \
           {{- end }}
-          http://{{ include "redpanda.servicename" . }}:{{ .Values.listeners.http.port }}/topics
+          http://{{ get ((include "redpanda.ServiceName" (dict "a" (list .))) | fromJson) "r" }}:{{ .Values.listeners.http.port }}/topics
       volumeMounts: {{ include "default-mounts" . | nindent 8 }}
       securityContext: {{ include "container-security-context" . | nindent 8 }}
   volumes: {{ include "default-volumes" . | nindent 4 }}

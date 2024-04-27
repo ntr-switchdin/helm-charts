@@ -16,7 +16,7 @@ limitations under the License.
 */}}
 {{- if (include "tls-enabled" . | fromJson).bool }}
   {{- $root := deepCopy . }}
-  {{- $service := include "redpanda.servicename" . }}
+  {{- $service := get ((include "redpanda.ServiceName" (dict "a" (list .))) | fromJson) "r" }}
   {{- $ns := .Release.Namespace }}
   {{- $domain := .Values.clusterDomain | trimSuffix "." }}
   {{- $listeners := .Values.listeners }}

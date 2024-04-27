@@ -30,13 +30,6 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{/*
-Create a default service name
-*/}}
-{{- define "redpanda.servicename" -}}
-{{- get ((include "redpanda.ServiceName" (dict "a" (list .))) | fromJson) "r" }}
-{{- end -}}
-
-{{/*
 full helm labels + common labels
 */}}
 {{- define "full.labels" -}}
