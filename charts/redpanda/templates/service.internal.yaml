@@ -23,11 +23,8 @@ kind: Service
 metadata:
   name: {{ include "redpanda.servicename" . }}
   namespace: {{ .Release.Namespace | quote }}
-  labels:
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
     monitoring.redpanda.com/enabled: {{ .Values.monitoring.enabled | quote }}
-{{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-{{- end }}
 {{- with dig "service" "internal" "annotations" dict .Values.AsMap }}
   annotations: {{ toYaml . | nindent 4 }}
 {{- end }}

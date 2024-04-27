@@ -33,10 +33,7 @@ kind: Issuer
 metadata:
   name: {{ template "redpanda.fullname" $ }}-{{ $name }}-selfsigned-issuer
   namespace: {{ $release.Namespace | quote }}
-  labels:
-{{- with include "full.labels" $root }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list $root))) | fromJson) "r") | toYaml | nindent 4}}
 spec:
   selfSigned: {}
 {{- end }}
@@ -47,10 +44,7 @@ kind: Issuer
 metadata:
   name: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-issuer
   namespace: {{ $release.Namespace | quote }}
-  labels:
-{{- with include "full.labels" $root }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list $root))) | fromJson) "r") | toYaml | nindent 4}}
 spec:
   ca:
     secretName: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-certificate
@@ -61,10 +55,7 @@ kind: Certificate
 metadata:
   name: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-certificate
   namespace: {{ $release.Namespace | quote }}
-  labels:
-{{- with include "full.labels" $root }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list $root))) | fromJson) "r") | toYaml | nindent 4}}
 spec:
   duration: {{ $d | default "43800h" }}
   isCA: true

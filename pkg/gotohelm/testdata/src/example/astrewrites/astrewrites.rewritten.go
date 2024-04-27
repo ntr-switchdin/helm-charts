@@ -1,4 +1,5 @@
 //go:build rewrites
+
 package astrewrites
 
 import (
@@ -56,7 +57,8 @@ func mvrs() {
 	{
 		// Using a 3rd party type, with type aliasing to boot.
 		m := map[string]corev1.Affinity{}
-		tmp_tuple_7 := helmette.Compact2(helmette.DictTest[string, corev1.Affinity](m, ""))
+		tmp_tuple_7 := helmette.Compact2(helmette.DictTest[string, corev1.
+			Affinity](m, ""))
 		y := tmp_tuple_7.T2
 		x := tmp_tuple_7.T1
 		_, _ = x, y

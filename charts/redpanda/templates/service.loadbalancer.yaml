@@ -26,10 +26,7 @@ kind: Service
 metadata:
   name: lb-{{ $podName }}
   namespace: {{ $root.Release.Namespace }}
-  labels:
-    {{- with include "full.labels" $root }}
-      {{- . | nindent 4 }}
-    {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list $root))) | fromJson) "r") | toYaml | nindent 4}}
     repdanda.com/type: "loadbalancer"
   {{- if (or $values.external.annotations (dig "externalDns" "enabled" false $values.external) ) }}
   annotations:

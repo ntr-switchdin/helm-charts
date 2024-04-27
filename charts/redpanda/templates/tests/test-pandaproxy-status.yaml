@@ -21,10 +21,7 @@ kind: Pod
 metadata:
   name: "{{ include "redpanda.fullname" . }}-test-pandaproxy-status"
   namespace: {{ .Release.Namespace | quote }}
-  labels:
-  {{- with include "full.labels" . }}
-    {{- . | nindent 4 }}
-  {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": before-hook-creation

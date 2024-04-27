@@ -31,10 +31,7 @@ kind: Pod
 metadata:
   name: {{ include "redpanda.fullname" . | trunc 54 }}-test-connectors-via-console
   namespace: {{ .Release.Namespace | quote }}
-  labels:
-  {{- with include "full.labels" . }}
-    {{- . | nindent 4 }}
-  {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
     test-name: test-connectors-via-console
   annotations:
     test-name: test-connectors-via-console

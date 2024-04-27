@@ -37,10 +37,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ template "redpanda.fullname" . }}
-  labels:
-{{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
 spec:
   selector:
     matchLabels: {{ (include "statefulset-pod-labels-selector" .) | nindent 6 }}

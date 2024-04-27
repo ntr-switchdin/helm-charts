@@ -27,10 +27,7 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ template "redpanda.fullname" . }}
   namespace: {{ .Release.Namespace }}
-  labels:
-{{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
 spec:
   maxUnavailable: {{ $budget | int64 }}
   selector:

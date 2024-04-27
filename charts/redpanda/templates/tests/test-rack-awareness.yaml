@@ -20,9 +20,7 @@ kind: Pod
 metadata:
   name: {{ include "redpanda.fullname" . }}-test-rack-awareness
   namespace: {{ .Release.Namespace | quote }}
-{{- with include "full.labels" . }}
-  labels: {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": before-hook-creation

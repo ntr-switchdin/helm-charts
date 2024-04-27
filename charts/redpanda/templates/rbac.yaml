@@ -20,10 +20,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "redpanda.fullname" . }}
-  labels:
-{{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -41,10 +38,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "redpanda.fullname" . }}-rpk-bundle
-  labels:
-{{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -72,10 +66,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "redpanda.fullname" . }}
-  labels:
-{{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -93,10 +84,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "redpanda.fullname" . }}-rpk-bundle
-  labels:
-{{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-{{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -116,10 +104,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "redpanda.fullname" . }}-sidecar-controllers
-  labels:
-  {{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-  {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
   {{- toYaml . | nindent 4 }}
@@ -149,10 +134,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "redpanda.fullname" . }}-sidecar-controllers
-  labels:
-  {{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-  {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
   {{- toYaml . | nindent 4 }}
@@ -170,10 +152,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ include "redpanda.fullname" . }}-sidecar-controllers
-  labels:
-  {{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-  {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
   {{- toYaml . | nindent 4 }}
@@ -221,10 +200,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ include "redpanda.fullname" . }}-sidecar-controllers
-  labels:
-  {{- with include "full.labels" . }}
-  {{- . | nindent 4 }}
-  {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 4}}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
   {{- toYaml . | nindent 4 }}

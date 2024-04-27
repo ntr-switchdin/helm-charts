@@ -534,12 +534,12 @@ metadata:
   name: redpanda
   namespace: "default"
   labels:
-    monitoring.redpanda.com/enabled: "false"
     app.kubernetes.io/component: redpanda
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
     helm.sh/chart: redpanda-5.8.0
+    monitoring.redpanda.com/enabled: "false"
 spec:
   type: ClusterIP
   publishNotReadyAddresses: true

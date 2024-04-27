@@ -31,10 +31,7 @@ kind: Certificate
 metadata:
   name: {{ template "redpanda.fullname" $ }}-{{ $name }}-cert
   namespace: {{ $ns | quote }}
-      {{- with include "full.labels" $root }}
-  labels:
-        {{- . | nindent 4 }}
-      {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list $root))) | fromJson) "r") | toYaml | nindent 4}}
 spec:
   dnsNames:
       {{- if or (empty $data.issuerRef) (dig "applyInternalDNSNames" false $data) }}
@@ -82,9 +79,7 @@ kind: Certificate
 metadata:
   name: {{ template "redpanda.fullname" $ }}-client
   namespace: {{ $ns | quote }}
-  {{- with include "full.labels" $root }}
-  labels: {{- . | nindent 4 }}
-  {{- end }}
+  labels:{{ (get ((include "redpanda.FullLabels" (dict "a" (list $root))) | fromJson) "r") | toYaml | nindent 4}}
 spec:
   commonName: {{ template "redpanda.fullname" $ }}-client
   duration: {{ $data.duration | default "43800h" }}
