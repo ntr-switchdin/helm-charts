@@ -43,7 +43,7 @@ Congratulations on installing {{ .Chart.Name }}!
 
 The pods will rollout in a few seconds. To check the status:
 
-  kubectl -n {{ .Release.Namespace }} rollout status statefulset {{ template "redpanda.fullname" . }} --watch
+  kubectl -n {{ .Release.Namespace }} rollout status statefulset {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }} --watch
 
 {{- if and (toJson (dict "bool" .Values.external.enabled)) (eq .Values.external.type "LoadBalancer") }}
 
@@ -56,13 +56,13 @@ Set up rpk for access to your external listeners:
 {{- $profile := keys .Values.listeners.kafka.external | first -}}
 {{ if (include "tls-enabled" . | fromJson).bool }}
   {{- $external := dig "tls" "cert" .Values.listeners.kafka.tls.cert (get .Values.listeners.kafka.external $profile )}}
-  kubectl get secret -n {{ .Release.Namespace }} {{ include "redpanda.fullname" . }}-{{ $external }}-cert -o go-template='{{ "{{" }} index .data "ca.crt" | base64decode }}' > ca.crt
+  kubectl get secret -n {{ .Release.Namespace }} {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-{{ $external }}-cert -o go-template='{{ "{{" }} index .data "ca.crt" | base64decode }}' > ca.crt
   {{- if or .Values.listeners.kafka.tls.requireClientAuth .Values.listeners.admin.tls.requireClientAuth }}
-  kubectl get secret -n {{ .Release.Namespace }} {{ include "redpanda.fullname" . }}-client -o go-template='{{ "{{" }} index .data "tls.crt" | base64decode }}' > tls.crt
-  kubectl get secret -n {{ .Release.Namespace }} {{ include "redpanda.fullname" . }}-client -o go-template='{{ "{{" }} index .data "tls.key" | base64decode }}' > tls.key
+  kubectl get secret -n {{ .Release.Namespace }} {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-client -o go-template='{{ "{{" }} index .data "tls.crt" | base64decode }}' > tls.crt
+  kubectl get secret -n {{ .Release.Namespace }} {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-client -o go-template='{{ "{{" }} index .data "tls.key" | base64decode }}' > tls.key
   {{- end }}
 {{- end }}
-  rpk profile create --from-profile <(kubectl get configmap -n {{ .Release.Namespace }} {{ include "redpanda.fullname" . }}-rpk -o go-template='{{ "{{" }} .data.profile }}') {{ $profile }}
+  rpk profile create --from-profile <(kubectl get configmap -n {{ .Release.Namespace }} {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-rpk -o go-template='{{ "{{" }} .data.profile }}') {{ $profile }}
 
 Set up dns to look up the pods on their Kubernetes Nodes. You can use this query to get the list of short-names to IP addresses. Add your external domain to the hostnames and you could test by adding these to your /etc/hosts:
 

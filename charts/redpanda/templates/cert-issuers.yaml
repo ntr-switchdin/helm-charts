@@ -31,7 +31,7 @@ limitations under the License.
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: {{ template "redpanda.fullname" $ }}-{{ $name }}-selfsigned-issuer
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-selfsigned-issuer
   namespace: {{ $release.Namespace | quote }}
   labels:
 {{- with include "full.labels" $root }}
@@ -45,7 +45,7 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-issuer
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-root-issuer
   namespace: {{ $release.Namespace | quote }}
   labels:
 {{- with include "full.labels" $root }}
@@ -53,13 +53,13 @@ metadata:
 {{- end }}
 spec:
   ca:
-    secretName: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-certificate
+    secretName: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-root-certificate
 ---
 # This is the root CA certificate
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-certificate
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-root-certificate
   namespace: {{ $release.Namespace | quote }}
   labels:
 {{- with include "full.labels" $root }}
@@ -68,13 +68,13 @@ metadata:
 spec:
   duration: {{ $d | default "43800h" }}
   isCA: true
-  commonName: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-certificate
-  secretName: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-certificate
+  commonName: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-root-certificate
+  secretName: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-root-certificate
   privateKey:
     algorithm: ECDSA
     size: 256
   issuerRef:
-    name: {{ template "redpanda.fullname" $ }}-{{ $name }}-selfsigned-issuer
+    name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-selfsigned-issuer
     kind: Issuer
     group: cert-manager.io
       {{- end }}

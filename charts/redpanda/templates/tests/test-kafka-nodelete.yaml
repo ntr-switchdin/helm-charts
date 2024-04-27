@@ -22,7 +22,7 @@ limitations under the License.
 apiVersion: v1
 kind: Pod
 metadata:
-  name: {{ include "redpanda.fullname" . }}-test-kafka-nodelete
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-kafka-nodelete
   namespace: {{ .Release.Namespace | quote }}
   labels:
 {{- with include "full.labels" . }}
@@ -42,7 +42,7 @@ spec:
       image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
       env:
         - name: REDPANDA_BROKERS
-          value: "{{ include "redpanda.fullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.clusterDomain | trimSuffix "." }}:{{ .Values.listeners.kafka.port }}"
+          value: "{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}.{{ .Release.Namespace }}.svc.{{ .Values.clusterDomain | trimSuffix "." }}:{{ .Values.listeners.kafka.port }}"
         - name: POD_NAME
           valueFrom:
             fieldRef:

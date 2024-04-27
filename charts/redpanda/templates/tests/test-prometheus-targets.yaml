@@ -19,7 +19,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "redpanda.fullname" . }}-test-prometheus-targets"
+  name: "{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-prometheus-targets"
   namespace: {{ .Release.Namespace | quote }}
   labels:
   {{- with include "full.labels" . }}
@@ -63,7 +63,7 @@ spec:
 
             # Run the command, and save the exit code
             # from: https://prometheus.io/docs/prometheus/latest/querying/api/
-            local RESULT=$( curl {{ template "curl-options" . }} http://prometheus-operated.prometheus.svc.cluster.local:9090/api/v1/targets?scrapePool=serviceMonitor/{{ .Release.Namespace }}/{{ include "redpanda.fullname" . }}/0 | jq '.data.activeTargets[].health | select(. == "up")' | wc -l  )
+            local RESULT=$( curl {{ template "curl-options" . }} http://prometheus-operated.prometheus.svc.cluster.local:9090/api/v1/targets?scrapePool=serviceMonitor/{{ .Release.Namespace }}/{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}/0 | jq '.data.activeTargets[].health | select(. == "up")' | wc -l  )
 
             echo $RESULT
           }
@@ -77,7 +77,7 @@ spec:
 
           set +x
           if [ $RESULT != {{ .Values.statefulset.replicas }} ]; then
-              curl --fail http://prometheus-operated.prometheus.svc.cluster.local:9090/api/v1/targets?scrapePool=serviceMonitor/{{ .Release.Namespace }}/{{ include "redpanda.fullname" . }}/0 | jq .
+              curl --fail http://prometheus-operated.prometheus.svc.cluster.local:9090/api/v1/targets?scrapePool=serviceMonitor/{{ .Release.Namespace }}/{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}/0 | jq .
               echo "the number of targets unexpected; got ${RESULT} targets 'up', but was expecting {{ .Values.statefulset.replicas }}"
               exit 1
           fi

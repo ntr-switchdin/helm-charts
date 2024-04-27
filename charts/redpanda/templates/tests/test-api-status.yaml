@@ -18,7 +18,7 @@ limitations under the License.
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "redpanda.fullname" . }}-test-api-status"
+  name: "{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-api-status"
   namespace: {{ .Release.Namespace | quote }}
   labels:
   {{- with include "full.labels" . }}
@@ -43,7 +43,7 @@ spec:
       - -c
       - |
         until rpk cluster info \
-          --brokers {{ include "redpanda.fullname" . }}-0.{{ include "redpanda.internal.domain" . }}:{{ .Values.listeners.kafka.port }}
+          --brokers {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-0.{{ include "redpanda.internal.domain" . }}:{{ .Values.listeners.kafka.port }}
           do sleep 2
         done
       volumeMounts: {{ include "default-mounts" . | nindent 8 }}

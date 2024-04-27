@@ -29,7 +29,7 @@ limitations under the License.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ template "redpanda.fullname" $ }}-{{ $name }}-cert
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-cert
   namespace: {{ $ns | quote }}
       {{- with include "full.labels" $root }}
   labels:
@@ -38,12 +38,12 @@ metadata:
 spec:
   dnsNames:
       {{- if or (empty $data.issuerRef) (dig "applyInternalDNSNames" false $data) }}
-    - {{ template "redpanda.fullname" $ }}-cluster.{{ printf "%s.%s.svc.%s" $service $ns $domain }}
-    - {{ template "redpanda.fullname" $ }}-cluster.{{ printf "%s.%s.svc" $service $ns }}
-    - {{ template "redpanda.fullname" $ }}-cluster.{{ printf "%s.%s" $service $ns }}
-    - "*.{{ template "redpanda.fullname" $ }}-cluster.{{ printf "%s.%s.svc.%s" $service $ns $domain }}"
-    - "*.{{ template "redpanda.fullname" $ }}-cluster.{{ printf "%s.%s.svc" $service $ns }}"
-    - "*.{{ template "redpanda.fullname" $ }}-cluster.{{ printf "%s.%s" $service $ns }}"
+    - {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-cluster.{{ printf "%s.%s.svc.%s" $service $ns $domain }}
+    - {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-cluster.{{ printf "%s.%s.svc" $service $ns }}
+    - {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-cluster.{{ printf "%s.%s" $service $ns }}
+    - "*.{{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-cluster.{{ printf "%s.%s.svc.%s" $service $ns $domain }}"
+    - "*.{{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-cluster.{{ printf "%s.%s.svc" $service $ns }}"
+    - "*.{{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-cluster.{{ printf "%s.%s" $service $ns }}"
     - {{ printf "%s.%s.svc.%s" $service $ns $domain }}
     - {{ printf "%s.%s.svc" $service $ns }}
     - {{ printf "%s.%s" $service $ns }}
@@ -57,7 +57,7 @@ spec:
       {{- end }}
   duration: {{ $d | default "43800h" }}
   isCA: false
-  secretName: {{ template "redpanda.fullname" $ }}-{{ $name }}-cert
+  secretName: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-cert
   privateKey:
     algorithm: ECDSA
     size: 256
@@ -67,7 +67,7 @@ spec:
     group: cert-manager.io
       {{- else }}
   issuerRef:
-    name: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-issuer
+    name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-root-issuer
     kind: Issuer
     group: cert-manager.io
       {{- end }}
@@ -80,16 +80,16 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ template "redpanda.fullname" $ }}-client
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-client
   namespace: {{ $ns | quote }}
   {{- with include "full.labels" $root }}
   labels: {{- . | nindent 4 }}
   {{- end }}
 spec:
-  commonName: {{ template "redpanda.fullname" $ }}-client
+  commonName: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-client
   duration: {{ $data.duration | default "43800h" }}
   isCA: false
-  secretName: {{ template "redpanda.fullname" $ }}-client
+  secretName: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-client
   privateKey:
     algorithm: ECDSA
     size: 256
@@ -98,7 +98,7 @@ spec:
     group: cert-manager.io
   {{- else }}
   issuerRef:
-    name: {{ template "redpanda.fullname" $ }}-{{ $name }}-root-issuer
+    name: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-{{ $name }}-root-issuer
     kind: Issuer
     group: cert-manager.io
   {{- end }}

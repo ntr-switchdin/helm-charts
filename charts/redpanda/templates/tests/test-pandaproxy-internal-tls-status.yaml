@@ -22,7 +22,7 @@ limitations under the License.
 apiVersion: v1
 kind: Pod
 metadata:
-  name: {{ include "redpanda.fullname" . }}-test-pandaproxy-internal-tls-status
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-pandaproxy-internal-tls-status
   namespace: {{ .Release.Namespace | quote }}
   labels:
   {{- with include "full.labels" . }}

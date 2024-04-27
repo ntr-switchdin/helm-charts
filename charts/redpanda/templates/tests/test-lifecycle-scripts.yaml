@@ -18,7 +18,7 @@ limitations under the License.
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "redpanda.fullname" . }}-test-lifecycle"
+  name: "{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-lifecycle"
   namespace: {{ .Release.Namespace | quote }}
   labels:
   {{- with include "full.labels" . }}
@@ -38,7 +38,7 @@ spec:
       image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
       env:
         - name: SERVICE_NAME
-          value: {{ include "redpanda.fullname" . }}-0
+          value: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-0
       command:
         - /bin/timeout
         - "{{ mul .Values.statefulset.terminationGracePeriodSeconds 2 }}"
@@ -61,6 +61,6 @@ spec:
   volumes: {{ include "default-volumes" . | nindent 4 }}
     - name: lifecycle-scripts
       secret:
-        secretName: {{ (include "redpanda.fullname" . | trunc 50 ) }}-sts-lifecycle
+        secretName: {{ (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" | trunc 50 ) }}-sts-lifecycle
         defaultMode: 0o775
   {{- end }}

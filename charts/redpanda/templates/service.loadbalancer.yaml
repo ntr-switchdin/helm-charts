@@ -19,7 +19,7 @@ limitations under the License.
   {{- $root := . }}
   {{- $addresses := dig "addresses" list $values.external }}
   {{- range $replicaIndex := untilStep 0 ($values.statefulset.replicas|int) 1 }}
-    {{- $podName := printf "%s-%d" (include "redpanda.fullname" $root) $replicaIndex }}
+    {{- $podName := printf "%s-%d" (get ((include "redpanda.Fullname" (dict "a" (list $root))) | fromJson) "r") $replicaIndex }}
 ---
 apiVersion: v1
 kind: Service

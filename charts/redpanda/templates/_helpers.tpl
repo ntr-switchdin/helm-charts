@@ -22,14 +22,6 @@ Expand the name of the chart.
 {{- end -}}
 
 {{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-*/}}
-{{- define "redpanda.fullname" -}}
-{{- get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}
-{{- end -}}
-
-{{/*
 Create a default service name
 */}}
 {{- define "redpanda.servicename" -}}
@@ -402,7 +394,7 @@ return a warning if the chart is configured with insufficient CPU
   {{- $brokers := list -}}
   {{- range $ordinal := until (.Values.statefulset.replicas | int) -}}
     {{- $brokers = append $brokers (printf "%s-%d.%s"
-        (include "redpanda.fullname" $)
+        (get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r")
         $ordinal
         (include "redpanda.internal.domain" $))
     -}}
@@ -508,7 +500,7 @@ return correct secretName to use based if secretRef exists
   {{- if .tempCert.cert.secretRef -}}
     {{- .tempCert.cert.secretRef.name -}}
   {{- else -}}
-    {{- include "redpanda.fullname" . }}-{{ .tempCert.name }}-cert
+    {{- get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-{{ .tempCert.name }}-cert
   {{- end -}}
 {{- end -}}
 
@@ -570,7 +562,7 @@ return licenseSecretRef.key checks deprecated values entry if current values emp
     {{- end }}
     {{- if (include "client-auth-required" . | fromJson).bool }}
 - name: mtls-client
-  mountPath: /etc/tls/certs/{{ template "redpanda.fullname" $ }}-client
+  mountPath: /etc/tls/certs/{{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-client
     {{- end }}
   {{- end }}
 {{- end -}}
@@ -595,7 +587,7 @@ return licenseSecretRef.key checks deprecated values entry if current values emp
     {{- if (include "client-auth-required" . | fromJson).bool }}
 - name: mtls-client
   secret:
-    secretName: {{ template "redpanda.fullname" $ }}-client
+    secretName: {{ get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r" }}-client
     defaultMode: 0o440
     {{- end }}
   {{- end -}}
@@ -610,7 +602,7 @@ return licenseSecretRef.key checks deprecated values entry if current values emp
 {{- define "default-volumes" -}}
 - name: config
   configMap:
-    name: {{ include "redpanda.fullname" . }}
+    name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}
 {{- include "common-volumes" . }}
 {{- end -}}
 

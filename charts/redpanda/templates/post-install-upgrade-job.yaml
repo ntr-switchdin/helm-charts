@@ -21,7 +21,7 @@ limitations under the License.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "redpanda.fullname" . }}-configuration
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-configuration
   namespace: {{ .Release.Namespace | quote }}
   labels:
 {{- with include "full.labels" . }}

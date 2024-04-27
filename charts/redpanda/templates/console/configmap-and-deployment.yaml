@@ -157,13 +157,13 @@ limitations under the License.
   {{ $command = append $command $consoleSASLConfig }}
   {{ $command = append $command "--" }}
   {{ $extraVolumes = append $extraVolumes (dict
-    "name" (printf "%s-users" (include "redpanda.fullname" .))
+    "name" (printf "%s-users" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r"))
     "secret" (dict
       "secretName" .Values.auth.sasl.secretRef
     )
   )}}
   {{ $extraVolumeMounts = append $extraVolumeMounts (dict
-    "name" (printf "%s-users" (include "redpanda.fullname" .))
+    "name" (printf "%s-users" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r"))
     "mountPath" "/mnt/users"
     "readOnly" true
   ) }}
@@ -173,7 +173,7 @@ limitations under the License.
 {{ if (include "kafka-internal-tls-enabled" . | fromJson).bool }}
   {{ $service := .Values.listeners.kafka }}
   {{ $cert := get .Values.tls.certs $service.tls.cert }}
-  {{- $secretName := (printf "%s-%s-cert" (include "redpanda.fullname" .) $service.tls.cert) }}
+  {{- $secretName := (printf "%s-%s-cert" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") $service.tls.cert) }}
   {{- if $cert.secretRef }}
     {{- $secretName = $cert.secretRef.name }}
   {{- end }}
@@ -201,7 +201,7 @@ limitations under the License.
 {{ if (include "schemaRegistry-internal-tls-enabled" . | fromJson).bool }}
   {{ $service := .Values.listeners.schemaRegistry }}
   {{ $cert := get .Values.tls.certs $service.tls.cert }}
-  {{- $secretName := (printf "%s-%s-cert" (include "redpanda.fullname" .) $service.tls.cert) }}
+  {{- $secretName := (printf "%s-%s-cert" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") $service.tls.cert) }}
   {{- if $cert.secretRef }}
   {{- $secretName = $cert.secretRef.name }}
   {{- end }}
@@ -229,7 +229,7 @@ limitations under the License.
 {{ if (include "admin-internal-tls-enabled" . | fromJson).bool }}
   {{ $service := .Values.listeners.admin }}
   {{ $cert := get .Values.tls.certs $service.tls.cert }}
-  {{- $secretName := (printf "%s-%s-cert" (include "redpanda.fullname" .) $service.tls.cert) }}
+  {{- $secretName := (printf "%s-%s-cert" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") $service.tls.cert) }}
   {{- if $cert.secretRef }}
   {{- $secretName = $cert.secretRef.name }}
   {{- end }}

@@ -19,7 +19,7 @@ limitations under the License.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "redpanda.fullname" . }}
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}
   labels:
 {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -40,7 +40,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "redpanda.fullname" . }}-rpk-bundle
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-rpk-bundle
   labels:
 {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -71,7 +71,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "redpanda.fullname" . }}
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}
   labels:
 {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -83,7 +83,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "redpanda.fullname" . }}
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}
 subjects:
   - kind: ServiceAccount
     name: {{ include "redpanda.serviceAccountName" . }}
@@ -92,7 +92,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "redpanda.fullname" . }}-rpk-bundle
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-rpk-bundle
   labels:
 {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -104,7 +104,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "redpanda.fullname" . }}-rpk-bundle
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-rpk-bundle
 subjects:
   - kind: ServiceAccount
     name: {{ include "redpanda.serviceAccountName" . }}
@@ -115,7 +115,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "redpanda.fullname" . }}-sidecar-controllers
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-sidecar-controllers
   labels:
   {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -148,7 +148,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "redpanda.fullname" . }}-sidecar-controllers
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-sidecar-controllers
   labels:
   {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -160,7 +160,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "redpanda.fullname" . }}-sidecar-controllers
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-sidecar-controllers
 subjects:
   - kind: ServiceAccount
     name: {{ include "redpanda.serviceAccountName" . }}
@@ -169,7 +169,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "redpanda.fullname" . }}-sidecar-controllers
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-sidecar-controllers
   labels:
   {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -220,7 +220,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "redpanda.fullname" . }}-sidecar-controllers
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-sidecar-controllers
   labels:
   {{- with include "full.labels" . }}
   {{- . | nindent 4 }}
@@ -232,7 +232,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "redpanda.fullname" . }}-sidecar-controllers
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-sidecar-controllers
 subjects:
   - kind: ServiceAccount
     name: {{ include "redpanda.serviceAccountName" . }}

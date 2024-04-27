@@ -21,7 +21,7 @@ limitations under the License.
 apiVersion: v1
 kind: Pod
 metadata:
-  name: {{ include "redpanda.fullname" . }}-test-kafka-internal-tls-status
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-kafka-internal-tls-status
   namespace: {{ .Release.Namespace | quote }}
   labels:
   {{- with include "full.labels" . }}
@@ -46,7 +46,7 @@ spec:
       - -c
       - |
         until rpk cluster info \
-          --brokers {{ include "redpanda.fullname" .}}-0.{{ include "redpanda.internal.domain" . }}:{{ $service.port }} \
+          --brokers {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-0.{{ include "redpanda.internal.domain" . }}:{{ $service.port }} \
           --tls-enabled \
   {{- if $cert.caEnabled }}
           --tls-truststore /etc/tls/certs/{{ $service.tls.cert }}/ca.crt

@@ -23,7 +23,7 @@ limitations under the License.
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "redpanda.fullname" . }}-test-update-sasl-users"
+  name: "{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-update-sasl-users"
   namespace: {{ .Release.Namespace | quote }}
   labels:
 {{- with include "full.labels" . }}

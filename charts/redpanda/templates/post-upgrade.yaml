@@ -21,7 +21,7 @@ limitations under the License.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "redpanda.fullname" . }}-post-upgrade
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-post-upgrade
   namespace: {{ .Release.Namespace | quote }}
   labels:
 {{- with include "full.labels" . }}

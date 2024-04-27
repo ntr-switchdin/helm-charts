@@ -25,7 +25,7 @@ limitations under the License.
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ template "redpanda.fullname" . }}
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}
   namespace: {{ .Release.Namespace }}
   labels:
 {{- with include "full.labels" . }}
@@ -35,4 +35,4 @@ spec:
   maxUnavailable: {{ $budget | int64 }}
   selector:
     matchLabels: {{ (include "statefulset-pod-labels-selector" .) | nindent 6 }}
-      redpanda.com/poddisruptionbudget: {{ template "redpanda.fullname" . }}
+      redpanda.com/poddisruptionbudget: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}

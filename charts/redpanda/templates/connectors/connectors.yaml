@@ -31,7 +31,7 @@ limitations under the License.
         "brokerTLS" (dict
           "enabled" (include "kafka-internal-tls-enabled" . | fromJson).bool
           "ca" (dict
-            "secretRef" (ternary (printf "%s-default-cert" (include "redpanda.fullname" .)) "" (include "kafka-internal-tls-enabled" . | fromJson).bool)
+            "secretRef" (ternary (printf "%s-default-cert" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r")) "" (include "kafka-internal-tls-enabled" . | fromJson).bool)
           )
         )
       )
@@ -55,7 +55,7 @@ limitations under the License.
   {{ $extraVolumes = concat $extraVolumes .Values.connectors.storage.volume }}
 
   {{ $extraVolumes = append $extraVolumes (dict
-    "name" (printf "%s-users" (include "redpanda.fullname" .))
+    "name" (printf "%s-users" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r"))
     "secret" (dict
       "secretName" .Values.auth.sasl.secretRef
     )
@@ -64,16 +64,16 @@ limitations under the License.
   {{ $extraVolumeMounts = concat $extraVolumeMounts .Values.connectors.storage.volumeMounts }}
 
   {{ $extraVolumeMounts = append $extraVolumeMounts (dict
-    "name" (printf "%s-users" (include "redpanda.fullname" .))
+    "name" (printf "%s-users" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r"))
     "mountPath" "/mnt/users"
     "readOnly" true
   )}}
   {{ $extraVolumes = append $extraVolumes (dict
-    "name" (printf "%s-user-password" ((include "redpanda.fullname" .)) | trunc 49)
+    "name" (printf "%s-user-password" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") | trunc 49)
     "emptyDir" (dict)
   )}}
   {{ $extraVolumeMounts = append $extraVolumeMounts (dict
-    "name" (printf "%s-user-password" ((include "redpanda.fullname" .)) | trunc 49)
+    "name" (printf "%s-user-password" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") | trunc 49)
     "mountPath" "/opt/kafka/connect-password/rc-credentials"
   )}}
   {{ $extraEnv = append $extraEnv (dict

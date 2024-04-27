@@ -20,7 +20,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: {{ include "redpanda.fullname" . }}-test-nodeport-tls
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-test-nodeport-tls
   namespace: {{ .Release.Namespace | quote }}
   labels:
   {{- with include "full.labels" . }}
@@ -66,7 +66,7 @@ spec:
           for i in $ordinal_list
           do
             POD_DESC=$(curl --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" \
-            -X GET ${APISERVER}/api/v1/namespaces/{{ .Release.Namespace }}/pods/{{ template "redpanda.fullname" . }}-$i)
+            -X GET ${APISERVER}/api/v1/namespaces/{{ .Release.Namespace }}/pods/{{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}-$i)
             ip=$(echo $POD_DESC | jq -r .status.hostIP )
             ip_list="$ip $ip_list"
           done

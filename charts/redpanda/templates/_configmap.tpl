@@ -34,7 +34,7 @@ limitations under the License.
 {{- if and (not (mustHas true $check)) $wantedRPCTLS -}}
   {{- fail (printf "Redpanda version v%s does not support TLS on the RPC port. Please upgrade. See technical service bulletin 2023-01." (include "redpanda.semver" .)) -}}
 {{- end -}}
-{{- $cm := lookup "v1" "ConfigMap" .Release.Namespace (include "redpanda.fullname" .) -}}
+{{- $cm := lookup "v1" "ConfigMap" .Release.Namespace (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") -}}
 {{- $redpandaYAML := dig "data" "redpanda.yaml" "" $cm | fromYaml -}}
 {{- $currentRPCTLS := dig "redpanda" "rpc_server_tls" "enabled" false $redpandaYAML -}}
 {{- /* Lookup will return an empty map when running `helm template` or when `--dry-run` is passed. */ -}}
@@ -590,7 +590,7 @@ redpanda.yaml: |
   {{- $brokers := list -}}
   {{- $admin := list -}}
   {{- range $i := untilStep 0 (.Values.statefulset.replicas|int) 1 -}}
-    {{- $podName := printf "%s-%d.%s" (include "redpanda.fullname" $) $i (include "redpanda.internal.domain" $) -}}
+    {{- $podName := printf "%s-%d.%s" (get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r") $i (include "redpanda.internal.domain" $) -}}
     {{- $brokers = concat $brokers (list (printf "%s:%d" $podName (int $.Values.listeners.kafka.port))) -}}
     {{- $admin = concat $admin (list (printf "%s:%d" $podName (int $.Values.listeners.admin.port))) -}}
   {{- end -}}
@@ -621,8 +621,8 @@ rpk:
       truststore_file: {{ printf "/etc/tls/certs/%s/ca.crt" .Values.listeners.kafka.tls.cert }}
     {{- end }}
     {{- if .Values.listeners.kafka.tls.requireClientAuth }}
-      cert_file: {{ printf "/etc/tls/certs/%s-client/tls.crt" (include "redpanda.fullname" .) }}
-      key_file: {{ printf "/etc/tls/certs/%s-client/tls.key" (include "redpanda.fullname" .) }}
+      cert_file: {{ printf "/etc/tls/certs/%s-client/tls.crt" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") }}
+      key_file: {{ printf "/etc/tls/certs/%s-client/tls.key" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") }}
     {{- end }}
   {{- end }}
   admin_api:
@@ -634,8 +634,8 @@ rpk:
       truststore_file: {{ printf "/etc/tls/certs/%s/ca.crt" .Values.listeners.admin.tls.cert }}
     {{- end }}
     {{- if .Values.listeners.admin.tls.requireClientAuth }}
-      cert_file: {{ printf "/etc/tls/certs/%s-client/tls.crt" (include "redpanda.fullname" .) }}
-      key_file: {{ printf "/etc/tls/certs/%s-client/tls.key" (include "redpanda.fullname" .) }}
+      cert_file: {{ printf "/etc/tls/certs/%s-client/tls.crt" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") }}
+      key_file: {{ printf "/etc/tls/certs/%s-client/tls.key" (get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r") }}
     {{- end }}
   {{- end }}
 {{- end -}}
@@ -667,7 +667,7 @@ rpk:
       {{- $adminListener = get .Values.listeners.admin.external $adminprofile -}}
   {{- end -}}
   {{- range $i := until (.Values.statefulset.replicas|int) -}}
-    {{- $externalAdvertiseAddress := printf "%s-%d" (include "redpanda.fullname" $) $i -}}
+    {{- $externalAdvertiseAddress := printf "%s-%d" (get ((include "redpanda.Fullname" (dict "a" (list $))) | fromJson) "r") $i -}}
     {{- if (tpl ($.Values.external.domain | default "") $) -}}
       {{- $externalAdvertiseAddress = printf "%s.%s" $externalAdvertiseAddress (tpl $.Values.external.domain $) -}}
     {{- end -}}

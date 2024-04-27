@@ -20,7 +20,7 @@ limitations under the License.
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "redpanda.fullname" . }}
+  name: {{ get ((include "redpanda.Fullname" (dict "a" (list .))) | fromJson) "r" }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
 {{- with include "full.labels" . }}
