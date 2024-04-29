@@ -18,6 +18,7 @@ package redpanda
 
 import (
 	"fmt"
+
 	"github.com/redpanda-data/helm-charts/pkg/gotohelm/helmette"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -43,15 +44,11 @@ func PostInstallUpgradeEnvironmentVariables(dot *helmette.Dot) []corev1.EnvVar {
 		})
 	}
 
-	tieredStorageConfig := values.Storage.Tiered.Config
-
-	if len(values.Storage.TieredConfig) > 0 {
-		tieredStorageConfig = values.Storage.TieredConfig
-	}
-
-	if !IsTieredStorageEnabled(tieredStorageConfig) {
+	if !values.Storage.IsTieredStorageEnabled() {
 		return envars
 	}
+
+	tieredStorageConfig := values.Storage.GetTieredStorageConfig()
 
 	ac, azureContainerExists := tieredStorageConfig["cloud_storage_azure_container"]
 	asa, azureStorageAccountExists := tieredStorageConfig["cloud_storage_azure_storage_account"]
@@ -215,11 +212,4 @@ func GetLicenseSecretReference(dot *helmette.Dot) *corev1.SecretKeySelector {
 		}
 	}
 	return nil
-}
-
-func IsTieredStorageEnabled(tieredStorageConfig TieredStorageConfig) bool {
-	if b, ok := tieredStorageConfig["cloud_storage_enabled"]; ok && b.(bool) {
-		return true
-	}
-	return false
 }
