@@ -248,7 +248,7 @@ type Storage struct {
 		Annotations  map[string]string `json:"annotations" jsonschema:"required"`
 		Enabled      bool              `json:"enabled" jsonschema:"required"`
 		Labels       map[string]string `json:"labels" jsonschema:"required"`
-		Size         MemoryAmount      `json:"size" jsonschema:"required"`
+		Size         intstr.IntOrString `json:"size" jsonschema:"required"`
 		StorageClass string            `json:"storageClass" jsonschema:"required"`
 	} `json:"persistentVolume" jsonschema:"required,deprecated"`
 	TieredConfig                  TieredStorageConfig `json:"tieredConfig" jsonschema:"deprecated"`

@@ -446,6 +446,20 @@ func redpandaAtLeast(dot *helmette.Dot, constraint string) bool {
 	return helmette.SemverCompare(constraint, version)
 }
 
+func StorageMinFreeBytes(dot *helmette.Dot) int64 {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	fiveGiB := int64(5368709120)
+
+	if !values.Storage.PersistentVolume.Enabled {
+		return fiveGiB
+	}
+
+	minSize := int64(float64(values.Storage.PersistentVolume.Size.IntValue()) * 0.05)
+
+	return helmette.Min(minSize, fiveGiB)
+}
+
 func cleanForK8s(in string) string {
 	return strings.TrimSuffix(helmette.Trunc(63, in), "-")
 }
