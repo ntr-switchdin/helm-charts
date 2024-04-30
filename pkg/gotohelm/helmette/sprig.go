@@ -249,3 +249,12 @@ func Float64(in string) (float64, error) {
 func Len(in any) int {
 	return reflect.ValueOf(in).Len()
 }
+// +gotohelm:builtin=semverCompare
+func SemverCompare(constraint, version string) bool {
+	fn := sprig.FuncMap()["semverCompare"].(func(string, string) (bool, error))
+	result, err := fn(constraint, version)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}

@@ -78,7 +78,6 @@ func Transpile(pkg *packages.Package) (_ *Chart, err error) {
 			"sort.Strings":               "sortAlpha",
 			"strings.ToLower":            "lower",
 			"strings.ToUpper":            "upper",
-			"strings.TrimPrefix":         "trimPrefix",
 		},
 	}
 
@@ -814,6 +813,8 @@ func (t *Transpiler) transpileCallExpr(n *ast.CallExpr) Node {
 		return &BuiltInCall{FuncName: "sortAlpha", Arguments: args}
 	case "strings.TrimSuffix":
 		return &BuiltInCall{FuncName: "trimSuffix", Arguments: []Node{args[1], args[0]}}
+	case "strings.TrimPrefix":
+		return &BuiltInCall{FuncName: "trimPrefix", Arguments: []Node{args[1], args[0]}}
 	case "strings.ReplaceAll":
 		return &BuiltInCall{FuncName: "replace", Arguments: []Node{args[1], args[2], args[0]}}
 	case "github.com/redpanda-data/helm-charts/pkg/gotohelm/helmette.Atoi":
