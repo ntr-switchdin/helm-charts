@@ -207,7 +207,7 @@ func InternalDomain(dot *helmette.Dot) string {
 func TLSEnabled(dot *helmette.Dot) bool {
 	values := helmette.Unwrap[Values](dot.Values)
 
-	if values.TLS.Enabled != nil && *values.TLS.Enabled {
+	if values.TLS.Enabled {
 		return true
 	}
 
@@ -455,7 +455,12 @@ func StorageMinFreeBytes(dot *helmette.Dot) int64 {
 		return fiveGiB
 	}
 
-	minSize := int64(float64(values.Storage.PersistentVolume.Size.IntValue()) * 0.05)
+	// TODO figure out how to handle this shit. Quantity is a fucking garbage
+	// type to work with. We could make the internal represenation a struct?
+	// Though we'd have to hook into Unwrap to actually unwrap the type...
+	// It'll be in our best interest to use a Quantity because that's the type
+	// internal to k8s.... but dear god it's a massive PITA.
+	minSize := int64(float64(values.Storage.PersistentVolume.Size.AsCanonicalBytes) * 0.05)
 
 	return helmette.Min(minSize, fiveGiB)
 }

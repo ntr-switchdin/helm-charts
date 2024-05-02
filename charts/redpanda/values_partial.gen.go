@@ -6,24 +6,25 @@ package redpanda
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type PartialValues struct {
-	NameOverride     *string           `json:"nameOverride,omitempty"`
-	FullnameOverride *string           `json:"fullnameOverride,omitempty"`
-	ClusterDomain    *string           `json:"clusterDomain,omitempty"`
-	CommonLabels     map[string]string `json:"commonLabels,omitempty"`
-	NodeSelector     map[string]string `json:"nodeSelector,omitempty"`
-	Affinity         *PartialAffinity  `json:"affinity,omitempty" jsonschema:"required"`
-	Tolerations      []map[string]any  `json:"tolerations,omitempty"`
-	Image            *PartialImage     `json:"image,omitempty" jsonschema:"required,description=Values used to define the container image to be used for Redpanda"`
-	Service          *PartialService   `json:"service,omitempty"`
-
-	LicenseKey       *string                  `json:"license_key,omitempty" jsonschema:"deprecated,pattern=^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\\.(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$|^$"`
-	LicenseSecretRef *PartialLicenseSecretRef `json:"license_secret_ref,omitempty" jsonschema:"deprecated"`
-	AuditLogging     *PartialAuditLogging     `json:"auditLogging,omitempty"`
-	Enterprise       *PartialEnterprise       `json:"enterprise,omitempty"`
-	RackAwareness    *PartialRackAwareness    `json:"rackAwareness,omitempty"`
+	NameOverride     *string                       `json:"nameOverride,omitempty"`
+	FullnameOverride *string                       `json:"fullnameOverride,omitempty"`
+	ClusterDomain    *string                       `json:"clusterDomain,omitempty"`
+	CommonLabels     map[string]string             `json:"commonLabels,omitempty"`
+	NodeSelector     map[string]string             `json:"nodeSelector,omitempty"`
+	Affinity         *PartialAffinity              `json:"affinity,omitempty" jsonschema:"required"`
+	Tolerations      []corev1.Toleration           `json:"tolerations,omitempty"`
+	Image            *PartialImage                 `json:"image,omitempty" jsonschema:"required,description=Values used to define the container image to be used for Redpanda"`
+	Service          *PartialService               `json:"service,omitempty"`
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	LicenseKey       *string                       `json:"license_key,omitempty" jsonschema:"deprecated,pattern=^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\\.(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$|^$"`
+	LicenseSecretRef *PartialLicenseSecretRef      `json:"license_secret_ref,omitempty" jsonschema:"deprecated"`
+	AuditLogging     *PartialAuditLogging          `json:"auditLogging,omitempty"`
+	Enterprise       *PartialEnterprise            `json:"enterprise,omitempty"`
+	RackAwareness    *PartialRackAwareness         `json:"rackAwareness,omitempty"`
 
 	Auth           *PartialAuth              `json:"auth,omitempty"`
 	TLS            *PartialTLS               `json:"tls,omitempty"`
@@ -110,7 +111,7 @@ type PartialAuth struct {
 
 type PartialTLS struct {
 	Enabled *bool              `json:"enabled,omitempty" jsonschema:"required"`
-	Certs   *PartialTLSCertMap `json:"certs,omitempty"`
+	Certs   *PartialTLSCertMap `json:"certs,omitempty" jsonschema:"required"`
 }
 
 type PartialExternalConfig struct {
@@ -170,11 +171,11 @@ type PartialStorage struct {
 	HostPath         *string        `json:"hostPath,omitempty" jsonschema:"required"`
 	Tiered           *PartialTiered `json:"tiered,omitempty" jsonschema:"required"`
 	PersistentVolume *struct {
-		Annotations  map[string]string `json:"annotations,omitempty" jsonschema:"required"`
-		Enabled      *bool             `json:"enabled,omitempty" jsonschema:"required"`
-		Labels       map[string]string `json:"labels,omitempty" jsonschema:"required"`
-		Size         *MemoryAmount     `json:"size,omitempty" jsonschema:"required"`
-		StorageClass *string           `json:"storageClass,omitempty" jsonschema:"required"`
+		Annotations  map[string]string  `json:"annotations,omitempty" jsonschema:"required"`
+		Enabled      *bool              `json:"enabled,omitempty" jsonschema:"required"`
+		Labels       map[string]string  `json:"labels,omitempty" jsonschema:"required"`
+		Size         intstr.IntOrString `json:"size,omitempty" jsonschema:"required"`
+		StorageClass *string            `json:"storageClass,omitempty" jsonschema:"required"`
 	} `json:"persistentVolume,omitempty" jsonschema:"required,deprecated"`
 	TieredConfig                  *PartialTieredStorageConfig `json:"tieredConfig,omitempty" jsonschema:"deprecated"`
 	TieredStorageHostPath         *string                     `json:"tieredStorageHostPath,omitempty" jsonschema:"deprecated"`
@@ -192,10 +193,16 @@ type PartialPostInstallJob struct {
 }
 
 type PartialPostUpgradeJob struct {
-	Resources    *PartialJobResources `json:"resources,omitempty"`
-	Affinity     map[string]any       `json:"affinity,omitempty"`
-	ExtraEnv     any                  `json:"extraEnv,omitempty" jsonschema:"oneof_type=array;string"`
-	ExtraEnvFrom any                  `json:"extraEnvFrom,omitempty" jsonschema:"oneof_type=array;string"`
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Affinity  *corev1.Affinity            `json:"affinity,omitempty"`
+
+	Enabled         *bool                   `json:"enabled,omitempty"`
+	Labels          map[string]string       `json:"labels,omitempty"`
+	Annotations     map[string]string       `json:"annotations,omitempty"`
+	BackoffLimit    *int32                  `json:"backoffLimit,omitempty"`
+	ExtraEnv        []corev1.EnvVar         `json:"extraEnv,omitempty"`
+	ExtraEnvFrom    []corev1.EnvFromSource  `json:"extraEnvFrom,omitempty"`
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
 }
 
 type PartialContainer struct {
@@ -257,7 +264,7 @@ type PartialStatefulset struct {
 		TopologyKey       *string `json:"topologyKey,omitempty"`
 		WhenUnsatisfiable *string `json:"whenUnsatisfiable,omitempty" jsonschema:"pattern=^(ScheduleAnyway|DoNotSchedule)$"`
 	} `json:"topologySpreadConstraints,omitempty" jsonschema:"required,minItems=1"`
-	Tolerations []any `json:"tolerations,omitempty" jsonschema:"required"`
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty" jsonschema:"required"`
 
 	PodSecurityContext *PartialSecurityContext `json:"podSecurityContext,omitempty"`
 	SecurityContext    *PartialSecurityContext `json:"securityContext,omitempty" jsonschema:"required"`
@@ -393,7 +400,7 @@ type PartialTLSCert struct {
 		Name *string        `json:"name,omitempty"`
 		Kind *IssuerRefKind `json:"kind,omitempty"`
 	} `json:"issuerRef,omitempty"`
-	SecretRef struct {
+	SecretRef *struct {
 		Name *string `json:"name,omitempty"`
 	} `json:"secretRef,omitempty"`
 }

@@ -10,7 +10,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/imdario/mergo"
+	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/maps"
 )
 
@@ -72,11 +74,11 @@ func Keys[K comparable, V any](m map[K]V) []K {
 }
 
 // Merge is a go equivalent of sprig's `merge`.
-func Merge[K comparable, V any](sources ...map[K]V) map[K]V {
-	dst := map[K]V{}
+func Merge[T any](sources ...T) T {
+	var dst T
 	for _, src := range sources {
 		if err := mergo.Merge(&dst, src); err != nil {
-			return nil
+			panic(err)
 		}
 	}
 	return dst
@@ -245,10 +247,23 @@ func Float64(in string) (float64, error) {
 	return strconv.ParseFloat(in, 64)
 }
 
+func Int64(in any) (int64, error) {
+	return sprig.FuncMap()["int64"].(func(any) (int64, error))(in)
+}
+
 // +gotohelm:builtin=len
 func Len(in any) int {
 	return reflect.ValueOf(in).Len()
 }
+
+// +gotohelm:builtin=min
+func Min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // +gotohelm:builtin=semverCompare
 func SemverCompare(constraint, version string) bool {
 	fn := sprig.FuncMap()["semverCompare"].(func(string, string) (bool, error))

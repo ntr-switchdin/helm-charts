@@ -20,6 +20,15 @@ import (
 	"fmt"
 )
 
+// isIntLikeFloat is a workaround for JSON always representing numbers as
+// float64's. If a value is a float64 with no fractional value, it's considered
+// to be an "integer like" float and therefore will pass when type checked via
+// typetest or typeassertion.
+func isIntLikeFloat(value any) bool {
+	// Could also try doing something funky with Printf?
+	return TypeIs("float64", value) && (Float64(value)-Floor(value)) == float64(0)
+}
+
 // typeatest is the implementation of the go syntax `_, _ := m.(t)`.
 func typetest(typ string, value, zero any) []any {
 	if TypeIs(typ, value) {
@@ -30,6 +39,17 @@ func typetest(typ string, value, zero any) []any {
 
 // typeassertion is the implementation of the go syntax `_ := m.(t)`.
 func typeassertion(typ string, value any) any {
+	// canCastToInt := isIntLikeFloat(value)
+	canCastToInt := TypeIs("float64", value) && (Float64(value)-Floor(value)) == float64(0)
+
+	if typ == "int" && canCastToInt {
+		return Int(value)
+	} else if typ == "int32" && canCastToInt {
+		return Int(value)
+	} else if typ == "int64" && canCastToInt {
+		return Int64(value)
+	}
+
 	if !TypeIs(typ, value) {
 		panic(fmt.Sprintf("expected type of %q got: %T", typ, value))
 	}

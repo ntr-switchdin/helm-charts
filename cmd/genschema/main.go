@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/invopop/jsonschema"
 	"github.com/redpanda-data/helm-charts/charts/redpanda"
 	"github.com/redpanda-data/helm-charts/pkg/valuesutil"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func Must[T any](value T, err error) T {
@@ -34,6 +36,20 @@ func main() {
 		// the underlying JSON is shaped and marshalled/unmarshalled. Instead,
 		// rely on explicitly set required tags.
 		RequiredFromJSONSchemaTags: true,
+		Mapper: func(t reflect.Type) *jsonschema.Schema {
+			switch reflect.New(t).Interface().(type) {
+			case *intstr.IntOrString:
+				return &jsonschema.Schema{
+					OneOf: []*jsonschema.Schema{
+						{Type: "integer"},
+						{Type: "string", Pattern: "^[0-9]+(\\.[0-9]){0,1}(k|M|G|T|P|Ki|Mi|Gi|Ti|Pi)?$"},
+					},
+				}
+
+			default:
+				return nil
+			}
+		},
 	}
 
 	schema := r.Reflect(&redpanda.Values{})

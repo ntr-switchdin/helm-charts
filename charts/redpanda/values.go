@@ -5,6 +5,8 @@ import (
 	"github.com/invopop/jsonschema"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // values.go contains a collection of go structs that (loosely) map to
@@ -18,21 +20,21 @@ import (
 // the Values struct as well to ensure that nothing can ever get out of sync.
 
 type Values struct {
-	NameOverride     string            `json:"nameOverride"`
-	FullnameOverride string            `json:"fullnameOverride"`
-	ClusterDomain    string            `json:"clusterDomain"`
-	CommonLabels     map[string]string `json:"commonLabels"`
-	NodeSelector     map[string]string `json:"nodeSelector"`
-	Affinity         Affinity          `json:"affinity" jsonschema:"required"`
-	Tolerations      []map[string]any  `json:"tolerations"`
-	Image            Image             `json:"image" jsonschema:"required,description=Values used to define the container image to be used for Redpanda"`
-	Service          *Service          `json:"service"`
-	// ImagePullSecrets []string `json:"imagePullSecrets"`
-	LicenseKey       string            `json:"license_key" jsonschema:"deprecated,pattern=^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\\.(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$|^$"`
-	LicenseSecretRef *LicenseSecretRef `json:"license_secret_ref" jsonschema:"deprecated"`
-	AuditLogging     AuditLogging      `json:"auditLogging"`
-	Enterprise       Enterprise        `json:"enterprise"`
-	RackAwareness    RackAwareness     `json:"rackAwareness"`
+	NameOverride     string                        `json:"nameOverride"`
+	FullnameOverride string                        `json:"fullnameOverride"`
+	ClusterDomain    string                        `json:"clusterDomain"`
+	CommonLabels     map[string]string             `json:"commonLabels"`
+	NodeSelector     map[string]string             `json:"nodeSelector"`
+	Affinity         Affinity                      `json:"affinity" jsonschema:"required"`
+	Tolerations      []corev1.Toleration           `json:"tolerations"`
+	Image            Image                         `json:"image" jsonschema:"required,description=Values used to define the container image to be used for Redpanda"`
+	Service          *Service                      `json:"service"`
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets"`
+	LicenseKey       string                        `json:"license_key" jsonschema:"deprecated,pattern=^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\\.(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$|^$"`
+	LicenseSecretRef *LicenseSecretRef             `json:"license_secret_ref" jsonschema:"deprecated"`
+	AuditLogging     AuditLogging                  `json:"auditLogging"`
+	Enterprise       Enterprise                    `json:"enterprise"`
+	RackAwareness    RackAwareness                 `json:"rackAwareness"`
 	// Console          any      `json:"console"`
 	// Connectors       any      `json:"connectors"`
 	Auth           Auth              `json:"auth"`
@@ -75,8 +77,6 @@ type SecurityContext struct {
 	RunAsNonRoot              *bool                          `json:"runAsNonRoot"`
 	FSGroup                   *int64                         `json:"fsGroup"`
 	FSGroupChangePolicy       *corev1.PodFSGroupChangePolicy `json:"fsGroupChangePolicy"`
-
-	// FSGroupChangePolicy string `json:"fsGroupChangePolicy" jsonschema:"pattern=^(OnRootMismatch|Always)$"`
 }
 
 type Image struct {
@@ -140,8 +140,8 @@ type Auth struct {
 }
 
 type TLS struct {
-	Enabled *bool       `json:"enabled" jsonschema:"required"`
-	Certs   *TLSCertMap `json:"certs"`
+	Enabled bool       `json:"enabled" jsonschema:"required"`
+	Certs   TLSCertMap `json:"certs" jsonschema:"required"`
 }
 
 type ExternalConfig struct {
@@ -248,7 +248,7 @@ type Storage struct {
 		Annotations  map[string]string `json:"annotations" jsonschema:"required"`
 		Enabled      bool              `json:"enabled" jsonschema:"required"`
 		Labels       map[string]string `json:"labels" jsonschema:"required"`
-		Size         intstr.IntOrString `json:"size" jsonschema:"required"`
+		Size         resource.Quantity `json:"size" jsonschema:"required"`
 		StorageClass string            `json:"storageClass" jsonschema:"required"`
 	} `json:"persistentVolume" jsonschema:"required,deprecated"`
 	TieredConfig                  TieredStorageConfig `json:"tieredConfig" jsonschema:"deprecated"`
@@ -280,18 +280,17 @@ type PostInstallJob struct {
 }
 
 type PostUpgradeJob struct {
-	Resources    JobResources   `json:"resources"`
-	Affinity     map[string]any `json:"affinity"`
-	ExtraEnv     any            `json:"extraEnv" jsonschema:"oneof_type=array;string"`
-	ExtraEnvFrom any            `json:"extraEnvFrom" jsonschema:"oneof_type=array;string"`
-
-	// Fields that are in values.yaml but not in values.schema.json.
-	// Enabled      bool              `json:"enabled"`
-	// Labels       map[string]string `json:"labels"`
-	// Annotations  map[string]string `json:"annotations"`
-	// BackoffLimit int               `json:"backoffLimit"`
-	// ExtraEnv    []corev1.EnvVar   `json:"extraEnv"`
-	// ExtraEnvFrom []corev1.EnvFromSource `json:"extraEnvFrom"`
+	Resources corev1.ResourceRequirements `json:"resources"`
+	Affinity  *corev1.Affinity            `json:"affinity"`
+	// ExtraEnv     any               `json:"extraEnv" jsonschema:"oneof_type=array;string"`
+	// ExtraEnvFrom any               `json:"extraEnvFrom" jsonschema:"oneof_type=array;string"`
+	Enabled         bool                    `json:"enabled"`
+	Labels          map[string]string       `json:"labels"`
+	Annotations     map[string]string       `json:"annotations"`
+	BackoffLimit    *int32                  `json:"backoffLimit"`
+	ExtraEnv        []corev1.EnvVar         `json:"extraEnv"`
+	ExtraEnvFrom    []corev1.EnvFromSource  `json:"extraEnvFrom"`
+	SecurityContext *corev1.SecurityContext `json:"securityContext"`
 }
 
 type ContainerName string
@@ -366,7 +365,7 @@ type Statefulset struct {
 		TopologyKey       string `json:"topologyKey"`
 		WhenUnsatisfiable string `json:"whenUnsatisfiable" jsonschema:"pattern=^(ScheduleAnyway|DoNotSchedule)$"`
 	} `json:"topologySpreadConstraints" jsonschema:"required,minItems=1"`
-	Tolerations []any `json:"tolerations" jsonschema:"required"`
+	Tolerations []corev1.Toleration `json:"tolerations" jsonschema:"required"`
 	// DEPRECATED. Not to be confused with [corev1.PodSecurityContext], this
 	// field is a historical artifact that should be quickly removed.
 	PodSecurityContext *SecurityContext `json:"podSecurityContext"`
@@ -509,7 +508,7 @@ type TLSCert struct {
 		Name string        `json:"name"`
 		Kind IssuerRefKind `json:"kind"`
 	} `json:"issuerRef"`
-	SecretRef struct {
+	SecretRef *struct {
 		Name string `json:"name"`
 	} `json:"secretRef"`
 }

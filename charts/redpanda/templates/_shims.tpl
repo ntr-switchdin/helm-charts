@@ -1,5 +1,13 @@
 {{- /* Generated from "bootstrap.go" */ -}}
 
+{{- define "_shims.isIntLikeFloat" -}}
+{{- $value := (index .a 0) -}}
+{{- range $_ := (list 1) -}}
+{{- (dict "r" (and (typeIs "float64" $value) (eq ((float64 (subf (float64 $value) (floor $value)))) (float64 0)))) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "_shims.typetest" -}}
 {{- $typ := (index .a 0) -}}
 {{- $value := (index .a 1) -}}
@@ -18,6 +26,19 @@
 {{- $typ := (index .a 0) -}}
 {{- $value := (index .a 1) -}}
 {{- range $_ := (list 1) -}}
+{{- $canCastToInt := (and (typeIs "float64" $value) (eq ((float64 (subf (float64 $value) (floor $value)))) (float64 0))) -}}
+{{- if (and (eq $typ "int") $canCastToInt) -}}
+{{- (dict "r" (int $value)) | toJson -}}
+{{- break -}}
+{{- else -}}{{- if (and (eq $typ "int32") $canCastToInt) -}}
+{{- (dict "r" (int $value)) | toJson -}}
+{{- break -}}
+{{- else -}}{{- if (and (eq $typ "int64") $canCastToInt) -}}
+{{- (dict "r" (int64 $value)) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- if (not (typeIs $typ $value)) -}}
 {{- $_ := (fail (printf "expected type of %q got: %T" $typ $value)) -}}
 {{- end -}}

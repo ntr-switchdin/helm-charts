@@ -23,3 +23,23 @@ func HasKey(map[string]any, string) bool {
 func Len(any) int {
 	panic("not implemented")
 }
+
+// +gotohelm:builtin=int
+func Int(any) int {
+	panic("not implemented")
+}
+
+// +gotohelm:builtin=int64
+func Int64(any) int64 {
+	panic("not implemented")
+}
+
+// +gotohelm:builtin=float64
+func Float64(any) float64 {
+	panic("not implemented")
+}
+
+// +gotohelm:builtin=floor
+func Floor(any) float64 {
+	panic("not implemented")
+}
