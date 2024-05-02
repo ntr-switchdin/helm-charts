@@ -43,3 +43,23 @@ func Float64(any) float64 {
 func Floor(any) float64 {
 	panic("not implemented")
 }
+
+// +gotohelm:builtin=regexMatch
+func RegexMatch(string, any) bool {
+	panic("not implemented")
+}
+
+// +gotohelm:builtin=regexFind
+func RegexFind(string, any) string {
+	panic("not implemented")
+}
+
+// +gotohelm:builtin=substr
+func Substr(int, int, any) string {
+	panic("not implemented")
+}
+
+// +gotohelm:builtin=toString
+func ToString(any) string {
+	panic("not implemented")
+}

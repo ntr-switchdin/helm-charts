@@ -20,6 +20,22 @@ import (
 	"fmt"
 )
 
+const (
+	// For reference: https://physics.nist.gov/cuu/Units/binary.html
+	milli = 0.001
+	kilo  = 1000
+	mega  = kilo * kilo
+	giga  = kilo * kilo * kilo
+	terra = kilo * kilo * kilo * kilo
+	peta  = kilo * kilo * kilo * kilo * kilo
+
+	kibi = 1024
+	mebi = kibi * kibi
+	gibi = kibi * kibi * kibi
+	tebi = kibi * kibi * kibi * kibi
+	pebi = kibi * kibi * kibi * kibi * kibi
+)
+
 // isIntLikeFloat is a workaround for JSON always representing numbers as
 // float64's. If a value is a float64 with no fractional value, it's considered
 // to be an "integer like" float and therefore will pass when type checked via
@@ -82,7 +98,8 @@ func deref(ptr any) any {
 	return ptr
 }
 
-func len(m map[string]any) int {
+func _len(m any) int {
+	// Handle empty/nil maps and lists as sprig does not.
 	if m == nil {
 		return 0
 	}
@@ -103,4 +120,86 @@ func ptr_Equal(a, b any) bool {
 		return true
 	}
 	return a == b
+}
+
+// pseudo implementation of k8s.io/apimachinery/pkg/api/resource.MustParse.
+func resource_MustParse(repr any) any {
+	if !TypeIs("string", repr) {
+		panic(fmt.Sprintf("invalid Quantity expected string got: %T", repr))
+	}
+
+	if !RegexMatch(`^[0-9]+(\.[0-9]){0,1}(k|m|M|G|T|P|Ki|Mi|Gi|Ti|Pi)?$`, repr) {
+		panic(fmt.Sprintf("invalid Quantity: %q", repr))
+	}
+
+	return repr
+
+	// TODO need to parse and then downcast if we want to have "full" support.
+}
+
+func resource_AsInt64(repr any) []any {
+	// If repr is numeric, pass it back as it.
+	// Probably need to truncate decimals just to be safe...
+	if TypeIs("float64", repr) {
+		return []any{Int64(repr), true}
+	}
+
+	if !TypeIs("string", repr) {
+		panic(fmt.Sprintf("resource.Quantity is neither string nor float64: %T", repr))
+	}
+
+	// Type cast would work but that relies on bootstrap to work so use sprig
+	// functions.
+	reprStr := ToString(repr)
+
+	unit := RegexFind("(k|m|M|G|T|P|Ki|Mi|Gi|Ti|Pi)$", reprStr)
+
+	numeric := Float64(Substr(0, len(reprStr)-len(unit), reprStr))
+
+	scale := float64(0)
+
+	if unit == "" {
+		scale = 1
+	} else if unit == "m" {
+		scale = milli
+	} else if unit == "k" {
+		scale = float64(kilo)
+	} else if unit == "M" {
+		scale = float64(mega)
+	} else if unit == "G" {
+		scale = float64(giga)
+	} else if unit == "T" {
+		scale = float64(terra)
+	} else if unit == "P" {
+		scale = float64(peta)
+	} else if unit == "Ki" {
+		scale = float64(kibi)
+	} else if unit == "Mi" {
+		scale = float64(mebi)
+	} else if unit == "Gi" {
+		scale = float64(gibi)
+	} else if unit == "Ti" {
+		scale = float64(tebi)
+	} else if unit == "Pi" {
+		scale = float64(pebi)
+	} else {
+		panic(fmt.Sprintf("unknown unit: %q", unit))
+	}
+
+	// TODO there's a bug somewhere. Without double casting, we'll get
+	// "incompatible types".
+	if float64(scale) < float64(1.0) {
+		return []any{0, false}
+	}
+
+	// TODO There are some cases where AsInt64 returns false. Need to replicate those here...
+	// Likely via bounds checks or checks on decimal values.
+
+	// TODO we're possibly losing precision here depending on the unit.
+	//
+	// if math.MaxFloat64/scale > numeric {
+	// 	return []any{0, true}
+	// }
+
+	return []any{scale * numeric, true}
 }

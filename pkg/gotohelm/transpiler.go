@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/format"
 	"go/token"
 	"go/types"
@@ -489,6 +490,13 @@ func (t *Transpiler) transpileExpr(n ast.Expr) Node {
 			// We could include definitions to constants and then reference
 			// them. For now, it's easier to turn constants into their
 			// definitions.
+			if obj.Val().Kind() == constant.Float {
+				// Float constants may get rationalized and expressed as a
+				// fraction (0.1 == 1/10) but `/`'s aren't parsed by gotpl.
+				return &Literal{
+					Value: obj.Val().String(),
+				}
+			}
 			return &Literal{
 				Value: obj.Val().ExactString(),
 			}
@@ -765,9 +773,9 @@ func (t *Transpiler) transpileCallExpr(n *ast.CallExpr) Node {
 			}
 			return &BuiltInCall{FuncName: "toString", Arguments: args}
 		case "len":
-			// BuiltInCall `int` is required as _shims.len is wrapped by fromJson which would change
+			// BuiltInCall `int` is required as _shims._len is wrapped by fromJson which would change
 			// return type from `int` to `float64`.
-			return &BuiltInCall{FuncName: "int", Arguments: []Node{&Call{FuncName: "_shims.len", Arguments: args}}}
+			return &BuiltInCall{FuncName: "int", Arguments: []Node{&Call{FuncName: "_shims._len", Arguments: args}}}
 		case "delete":
 			return &BuiltInCall{FuncName: "unset", Arguments: args}
 		default:
@@ -775,20 +783,26 @@ func (t *Transpiler) transpileCallExpr(n *ast.CallExpr) Node {
 		}
 	}
 
-	// Method call.
-	if callee.Type().(*types.Signature).Recv() != nil {
-		if len(args) != 0 {
-			panic(&Unsupported{Fset: t.Fset, Node: n, Msg: "method calls with arguments are not implemented"})
-		}
-		// Method calls come in as a "top level" CallExpr where .Fun is the
-		// selector up to that call. IE all of `Foo.Bar.Baz()` will be "within"
-		// the CallExpr. CallExpr.Fun will contain Foo.Bar.Baz. In the case of
-		// zero argument methods, text/template will automatically call them.
-		return t.transpileExpr(n.Fun)
-	}
-
 	id := callee.Pkg().Path() + "." + callee.Name()
+
+	var reciever Node
+
+	// TODO explain/figure out the difference here. It matters a lot.
 	signature := t.typeOf(n.Fun).(*types.Signature)
+	// signature := callee.Type().(*types.Signature)
+
+	if recv := callee.Type().(*types.Signature).Recv(); recv != nil {
+		reciever = &Ident{Name: recv.Name()}
+		recieverName := ""
+		switch x := recv.Type().(type) {
+		case *types.Named:
+			recieverName = x.Obj().Name()
+		case *types.Pointer:
+			recieverName = "*" + x.Elem().(*types.Named).Obj().Name()
+		}
+		// Try to make a string that looks like something from reflect.
+		id = callee.Pkg().Path() + ".(" + recieverName + ")." + callee.Name()
+	}
 
 	// Before checking anything else, search for a +gotohelm:builtin=X
 	// directive. If we find such a directive, we'll emit a BuiltInCall node
@@ -873,6 +887,23 @@ func (t *Transpiler) transpileCallExpr(n *ast.CallExpr) Node {
 	case "github.com/redpanda-data/helm-charts/pkg/gotohelm/helmette.Merge":
 		dict := DictLiteral{}
 		return &BuiltInCall{FuncName: "merge", Arguments: append([]Node{&dict}, args...)}
+	case "github.com/redpanda-data/helm-charts/pkg/gotohelm/helmette.(Values).AsMap":
+		return t.transpileExpr(n.Fun)
+
+	// Support for resource.Quantity. In helm world, resource.Quantity is
+	// always represented as it's JSON representation of either a string or a
+	// number with polyfills in the bootstrap package for the following
+	// methods.
+	// WARNING: There is not 100% compatibility and this is on purpose. If a
+	// resource.Quantity would return false to AsInt64, there's no way to
+	// interact with it in helm world. (LOOKING AT YOU MILLICORES).
+	case "k8s.io/apimachinery/pkg/api/resource.MustParse":
+		return &Call{FuncName: "_shims.resource_MustParse", Arguments: args}
+	case "k8s.io/apimachinery/pkg/api/resource.(*Quantity).AsInt64":
+		return &Call{FuncName: "_shims.resource_AsInt64", Arguments: append([]Node{reciever}, args...)}
+	case "k8s.io/apimachinery/pkg/api/resource.(*Quantity).String":
+		return reciever
+
 	default:
 		panic(fmt.Sprintf("unsupported function %q", id))
 	}
