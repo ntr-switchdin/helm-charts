@@ -2,6 +2,7 @@ package helmtest
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/redpanda-data/helm-charts/pkg/helm"
@@ -20,6 +21,7 @@ import (
 type Env struct {
 	helm *helm.Client
 	ctl  *kube.Ctl
+	sync.Mutex
 }
 
 // Setup creates a new [Env] using whatever cluster is available in KUBECONFIG.
@@ -73,15 +75,26 @@ func (e *NamespacedEnv) Ctl() *kube.Ctl {
 	return e.env.Ctl()
 }
 
-func (e *NamespacedEnv) Install(chart string, opts helm.InstallOptions) helm.Release {
-	require.Zero(e.t, opts.Name, ".Name may not be specified")
-	require.Zero(e.t, opts.Namespace, ".Namespace may not be specified")
+func (e *NamespacedEnv) Install(ctx context.Context, chart string, opts helm.InstallOptions) helm.Release {
 	require.False(e.t, opts.CreateNamespace, ".CreateNamespace may not be specified")
 
 	opts.Namespace = e.namespace.Name
 
-	release, err := e.env.helm.Install(context.Background(), chart, opts)
+	// Every time, Redpanda chart is installed, the next deployment would fail
+	// as standard deployment uses fixed NodePorts. That's why Environment is using
+	// Mutex lock.
+	e.env.Lock()
+	release, err := e.env.helm.Install(ctx, chart, opts)
 	require.NoError(e.t, err)
+
+	e.t.Cleanup(func() {
+		// Running multiple Redpanda charts can not happen as standard deployment
+		// reuse NodePorts which would cause deployment errors. That's why
+		// `testutil.MaybeCleanup` can not be used.
+		require.NoError(e.t, e.env.helm.Uninstall(ctx, release))
+		e.env.Unlock()
+	})
+
 	return release
 }
 
