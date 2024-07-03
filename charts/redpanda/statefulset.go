@@ -247,3 +247,273 @@ func StatefulSetVolumeMounts(dot *helmette.Dot) []corev1.VolumeMount {
 
 	return mounts
 }
+
+func StatefulSetInitContainers(dot *helmette.Dot) []corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	var containers []corev1.Container
+	if c := statefulSetInitContainerTuning(dot); c != nil {
+		containers = append(containers, *c)
+	}
+	if c := statefulSetInitContainerSetDataDirOwnership(dot); c != nil {
+		containers = append(containers, *c)
+	}
+	if c := statefulSetInitContainerFSValidator(dot); c != nil {
+		containers = append(containers, *c)
+	}
+	if c := statefulSetInitContainerSetTieredStorageCacheDirOwnership(dot); c != nil {
+		containers = append(containers, *c)
+	}
+	containers = append(containers, *statefulSetInitContainerConfigurator(dot))
+	containers = append(containers, values.Statefulset.InitContainers.ExtraInitContainers...)
+	return containers
+}
+
+func statefulSetInitContainerTuning(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	if !values.Tuning.TuneAIOEvents {
+		return nil
+	}
+
+	return &corev1.Container{
+		Name:  "tuning",
+		Image: fmt.Sprintf("%s:%s", values.Image.Repository, Tag(dot)),
+		Command: []string{
+			`/bin/bash`,
+			`-c`,
+			`rpk redpanda tune all`,
+		},
+		SecurityContext: &corev1.SecurityContext{
+			Capabilities: &corev1.Capabilities{
+				Add: []corev1.Capability{`SYS_RESOURCE`},
+			},
+			Privileged: ptr.To(true),
+			RunAsUser:  ptr.To(int64(0)),
+			RunAsGroup: ptr.To(int64(0)),
+		},
+		VolumeMounts: append(append(CommonMounts(dot),
+			values.Statefulset.InitContainers.Tuning.ExtraVolumeMounts...),
+			corev1.VolumeMount{
+				Name:      Fullname(dot),
+				MountPath: "/etc/redpanda",
+			},
+		),
+		Resources: helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.InitContainers.Tuning.Resources),
+	}
+}
+
+func statefulSetInitContainerSetDataDirOwnership(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	if !values.Statefulset.InitContainers.SetDataDirOwnership.Enabled {
+		return nil
+	}
+
+	uid, gid := securityContextUidGid(dot, "set-datadir-ownership")
+
+	return &corev1.Container{
+		Name:  "set-datadir-ownership",
+		Image: fmt.Sprintf("%s:%s", values.Statefulset.InitContainerImage.Repository, values.Statefulset.InitContainerImage.Tag),
+		Command: []string{
+			`/bin/sh`,
+			`-c`,
+			fmt.Sprintf(`chown %d:%d -R /var/lib/redpanda/data`, uid, gid),
+		},
+		VolumeMounts: append(append(CommonMounts(dot),
+			values.Statefulset.InitContainers.SetDataDirOwnership.ExtraVolumeMounts...),
+			corev1.VolumeMount{
+				Name:      `datadir`,
+				MountPath: `/var/lib/redpanda/data`,
+			}),
+		Resources: helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.InitContainers.SetDataDirOwnership.Resources),
+	}
+}
+
+func securityContextUidGid(dot *helmette.Dot, containerName string) (int64, int64) {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	uid := values.Statefulset.SecurityContext.RunAsUser
+	if values.Statefulset.PodSecurityContext != nil && values.Statefulset.PodSecurityContext.RunAsUser != nil {
+		uid = values.Statefulset.PodSecurityContext.RunAsUser
+	}
+	if uid == nil {
+		panic(fmt.Sprintf(`%s container requires runAsUser to be specified`, containerName))
+	}
+
+	gid := values.Statefulset.SecurityContext.FSGroup
+	if values.Statefulset.PodSecurityContext != nil && values.Statefulset.PodSecurityContext.FSGroup != nil {
+		gid = values.Statefulset.PodSecurityContext.FSGroup
+	}
+	if gid == nil {
+		panic(fmt.Sprintf(`%s container requires fsGroup to be specified`, containerName))
+	}
+	return *uid, *gid
+}
+
+func statefulSetInitContainerFSValidator(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	if !values.Statefulset.InitContainers.FSValidator.Enabled {
+		return nil
+	}
+
+	return &corev1.Container{
+		Name:    "fs-validator",
+		Image:   fmt.Sprintf("%s:%s", values.Image.Repository, Tag(dot)),
+		Command: []string{`/bin/sh`},
+		Args: []string{
+			`-c`,
+			fmt.Sprintf(`trap "exit 0" TERM; exec /etc/secrets/fs-validator/scripts/fsValidator.sh %s & wait $!`,
+				values.Statefulset.InitContainers.FSValidator.ExpectedFS,
+			),
+		},
+		SecurityContext: ptr.To(ContainerSecurityContext(dot)),
+		VolumeMounts: append(append(CommonMounts(dot),
+			values.Statefulset.InitContainers.FSValidator.ExtraVolumeMounts...),
+			corev1.VolumeMount{
+				Name:      fmt.Sprintf(`%.49s-fs-validator`, Fullname(dot)),
+				MountPath: `/etc/secrets/fs-validator/scripts/`,
+			},
+			corev1.VolumeMount{
+				Name:      `datadir`,
+				MountPath: `/var/lib/redpanda/data`,
+			},
+		),
+		Resources: helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.InitContainers.FSValidator.Resources),
+	}
+}
+
+func statefulSetInitContainerSetTieredStorageCacheDirOwnership(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	if !values.Storage.IsTieredStorageEnabled() {
+		return nil
+	}
+
+	uid, gid := securityContextUidGid(dot, "set-tiered-storage-cache-dir-ownership")
+	cacheDir := storageTieredCacheDirectory(dot)
+	mounts := CommonMounts(dot)
+	mounts = append(mounts, corev1.VolumeMount{
+		Name:      "datadir",
+		MountPath: "/var/lib/redpanda/data",
+	})
+	if storageTieredMountType(dot) != "none" {
+		name := "tiered-storage-dir"
+		if values.Storage.PersistentVolume != nil && values.Storage.PersistentVolume.NameOverwrite != "" {
+			name = values.Storage.PersistentVolume.NameOverwrite
+		}
+		mounts = append(mounts, corev1.VolumeMount{
+			Name:      name,
+			MountPath: cacheDir,
+		})
+	}
+	mounts = append(mounts, values.Statefulset.InitContainers.SetTieredStorageCacheDirOwnership.ExtraVolumeMounts...)
+
+	return &corev1.Container{
+		Name:  `set-tiered-storage-cache-dir-ownership`,
+		Image: fmt.Sprintf(`%s:%s`, values.Statefulset.InitContainerImage.Repository, values.Statefulset.InitContainerImage.Tag),
+		Command: []string{
+			`/bin/sh`,
+			`-c`,
+			fmt.Sprintf(`mkdir -p %s; chown %d:%d -R %s`,
+				cacheDir,
+				uid, gid,
+				cacheDir,
+			),
+		},
+		VolumeMounts: mounts,
+		Resources:    helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.InitContainers.SetTieredStorageCacheDirOwnership.Resources),
+	}
+}
+
+// storageTieredCacheDirectory was: tieredStorage.cacheDirectory
+func storageTieredCacheDirectory(dot *helmette.Dot) string {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	config := values.Storage.GetTieredStorageConfig()
+
+	dir := helmette.Dig(config, "/var/lib/redpanda/data/cloud_storage_cache", `cloud_storage_cache_directory`).(string)
+	if dir == "" {
+		return "/var/lib/redpanda/data/cloud_storage_cache"
+	}
+	return dir
+}
+
+// storageTieredMountType was: storage-tiered-mountType
+func storageTieredMountType(dot *helmette.Dot) string {
+	values := helmette.Unwrap[Values](dot.Values)
+	if values.Storage.TieredStoragePersistentVolume != nil && values.Storage.TieredStoragePersistentVolume.Enabled {
+		return "persistentVolume"
+	}
+	if values.Storage.TieredStorageHostPath != "" {
+		// XXX type is declared as string, but it's being used as a bool
+		return "hostPath"
+	}
+	return values.Storage.Tiered.MountType
+}
+
+func statefulSetInitContainerConfigurator(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	return &corev1.Container{
+		Name:  fmt.Sprintf(`%.51s-configurator`, Name(dot)),
+		Image: fmt.Sprintf(`%s:%s`, values.Image.Repository, Tag(dot)),
+		Command: []string{
+			`/bin/bash`,
+			`-c`,
+			`trap "exit 0" TERM; exec $CONFIGURATOR_SCRIPT "${SERVICE_NAME}" "${KUBERNETES_NODE_NAME}" & wait $!`,
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "CONFIGURATOR_SCRIPT",
+				Value: "/etc/secrets/configurator/scripts/configurator.sh",
+			},
+			{
+				Name: "SERVICE_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+					ResourceFieldRef: nil,
+					ConfigMapKeyRef:  nil,
+					SecretKeyRef:     nil,
+				},
+			},
+			{
+				Name: "KUBERNETES_NODE_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "spec.nodeName",
+					},
+				},
+			},
+			{
+				Name: "HOST_IP_ADDRESS",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "status.hostIP",
+					},
+				},
+			},
+		},
+		SecurityContext: ptr.To(ContainerSecurityContext(dot)),
+		VolumeMounts: append(append(CommonMounts(dot),
+			values.Statefulset.InitContainers.Configurator.ExtraVolumeMounts...),
+			corev1.VolumeMount{
+				Name:      "config",
+				MountPath: "/etc/redpanda",
+			},
+			corev1.VolumeMount{
+				Name:      Fullname(dot),
+				MountPath: "/tmp/base-config",
+			},
+			corev1.VolumeMount{
+				Name:      fmt.Sprintf(`%.51s-configurator`, Fullname(dot)),
+				MountPath: "/etc/secrets/configurator/scripts/",
+			},
+		),
+		Resources: helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.InitContainers.Configurator.Resources),
+	}
+}

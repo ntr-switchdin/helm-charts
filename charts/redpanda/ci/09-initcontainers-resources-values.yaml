@@ -30,6 +30,9 @@ statefulset:
         limits:
           memory: "60Mi"
           cpu: "200m"
+      extraVolumeMounts:
+        - name: test-extra-volume
+          mountPath: /fake/lifecycle
     configurator:
       resources:
         requests:
@@ -38,11 +41,11 @@ statefulset:
         limits:
           memory: "60Mi"
           cpu: "200m"
-      extraVolumeMounts: |-
+      extraVolumeMounts:
         - name: test-extra-volume
           mountPath: /fake/lifecycle
     tuning:
-      extraVolumeMounts: |-
+      extraVolumeMounts:
         - name: test-extra-volume
           mountPath: /fake/lifecycle
     setDataDirOwnership:
@@ -54,7 +57,7 @@ statefulset:
         limits:
           memory: "60Mi"
           cpu: "200m"
-      extraVolumeMounts: |-
+      extraVolumeMounts:
         - name: test-extra-volume
           mountPath: /fake/lifecycle
     setTieredStorageCacheDirOwnership:
@@ -66,10 +69,10 @@ statefulset:
         limits:
           memory: "60Mi"
           cpu: "200m"
-      extraVolumeMounts: |-
+      extraVolumeMounts:
         - name: test-extra-volume
           mountPath: /fake/lifecycle
-    extraInitContainers: |-
+    extraInitContainers:
       - name: "test-init-container"
         image: "mintel/docker-alpine-bash-curl-jq:latest"
         command: [ "/bin/bash", "-c" ]

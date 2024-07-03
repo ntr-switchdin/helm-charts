@@ -6,7 +6,7 @@
 package redpanda
 
 import (
-	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	cmmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -139,11 +139,12 @@ type PartialStorage struct {
 	HostPath         *string        "json:\"hostPath,omitempty\" jsonschema:\"required\""
 	Tiered           *PartialTiered "json:\"tiered,omitempty\" jsonschema:\"required\""
 	PersistentVolume *struct {
-		Annotations  map[string]string  "json:\"annotations,omitempty\" jsonschema:\"required\""
-		Enabled      *bool              "json:\"enabled,omitempty\" jsonschema:\"required\""
-		Labels       map[string]string  "json:\"labels,omitempty\" jsonschema:\"required\""
-		Size         *resource.Quantity "json:\"size,omitempty\" jsonschema:\"required\""
-		StorageClass *string            "json:\"storageClass,omitempty\" jsonschema:\"required\""
+		Annotations   map[string]string  "json:\"annotations,omitempty\" jsonschema:\"required\""
+		Enabled       *bool              "json:\"enabled,omitempty\" jsonschema:\"required\""
+		Labels        map[string]string  "json:\"labels,omitempty\" jsonschema:\"required\""
+		Size          *resource.Quantity "json:\"size,omitempty\" jsonschema:\"required\""
+		StorageClass  *string            "json:\"storageClass,omitempty\" jsonschema:\"required\""
+		NameOverwrite *string            "json:\"nameOverwrite,omitempty\""
 	} "json:\"persistentVolume,omitempty\" jsonschema:\"required,deprecated\""
 	TieredConfig                  PartialTieredStorageConfig "json:\"tieredConfig,omitempty\" jsonschema:\"deprecated\""
 	TieredStorageHostPath         *string                    "json:\"tieredStorageHostPath,omitempty\" jsonschema:\"deprecated\""
@@ -244,30 +245,34 @@ type PartialStatefulset struct {
 	ExtraVolumeMounts *string "json:\"extraVolumeMounts,omitempty\""
 	InitContainers    *struct {
 		Configurator *struct {
-			ExtraVolumeMounts *string        "json:\"extraVolumeMounts,omitempty\""
-			Resources         map[string]any "json:\"resources,omitempty\""
+			ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""
+			Resources         map[string]any       "json:\"resources,omitempty\""
 		} "json:\"configurator,omitempty\""
 		FSValidator *struct {
-			Enabled           *bool          "json:\"enabled,omitempty\""
-			Resources         map[string]any "json:\"resources,omitempty\""
-			ExtraVolumeMounts *string        "json:\"extraVolumeMounts,omitempty\""
-			ExpectedFS        *string        "json:\"expectedFS,omitempty\""
+			Enabled           *bool                "json:\"enabled,omitempty\""
+			Resources         map[string]any       "json:\"resources,omitempty\""
+			ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""
+			ExpectedFS        *string              "json:\"expectedFS,omitempty\""
 		} "json:\"fsValidator,omitempty\""
 		SetDataDirOwnership *struct {
-			Enabled           *bool          "json:\"enabled,omitempty\""
-			Resources         map[string]any "json:\"resources,omitempty\""
-			ExtraVolumeMounts *string        "json:\"extraVolumeMounts,omitempty\""
+			Enabled           *bool                "json:\"enabled,omitempty\""
+			Resources         map[string]any       "json:\"resources,omitempty\""
+			ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""
 		} "json:\"setDataDirOwnership,omitempty\""
 		SetTieredStorageCacheDirOwnership *struct {
-			Resources         map[string]any "json:\"resources,omitempty\""
-			ExtraVolumeMounts *string        "json:\"extraVolumeMounts,omitempty\""
+			Resources         map[string]any       "json:\"resources,omitempty\""
+			ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""
 		} "json:\"setTieredStorageCacheDirOwnership,omitempty\""
 		Tuning *struct {
-			Resources         map[string]any "json:\"resources,omitempty\""
-			ExtraVolumeMounts *string        "json:\"extraVolumeMounts,omitempty\""
+			Resources         map[string]any       "json:\"resources,omitempty\""
+			ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""
 		} "json:\"tuning,omitempty\""
-		ExtraInitContainers *string "json:\"extraInitContainers,omitempty\""
+		ExtraInitContainers []corev1.Container "json:\"extraInitContainers,omitempty\""
 	} "json:\"initContainers,omitempty\""
+	InitContainerImage *struct {
+		Repository *string "json:\"repository,omitempty\""
+		Tag        *string "json:\"tag,omitempty\""
+	} "json:\"initContainerImage,omitempty\""
 }
 
 type PartialServiceAccountCfg struct {
@@ -442,7 +447,7 @@ type PartialTLSCert struct {
 	CAEnabled             *bool                        "json:\"caEnabled,omitempty\" jsonschema:\"required\""
 	ApplyInternalDNSNames *bool                        "json:\"applyInternalDNSNames,omitempty\""
 	Duration              *string                      "json:\"duration,omitempty\" jsonschema:\"pattern=.*[smh]$\""
-	IssuerRef             *cmmeta.ObjectReference      "json:\"issuerRef,omitempty\""
+	IssuerRef             *cmmetav1.ObjectReference    "json:\"issuerRef,omitempty\""
 	SecretRef             *corev1.LocalObjectReference "json:\"secretRef,omitempty\""
 }
 

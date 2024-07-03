@@ -349,11 +349,12 @@ type Storage struct {
 	HostPath         string  `json:"hostPath" jsonschema:"required"`
 	Tiered           *Tiered `json:"tiered" jsonschema:"required"`
 	PersistentVolume *struct {
-		Annotations  map[string]string `json:"annotations" jsonschema:"required"`
-		Enabled      bool              `json:"enabled" jsonschema:"required"`
-		Labels       map[string]string `json:"labels" jsonschema:"required"`
-		Size         resource.Quantity `json:"size" jsonschema:"required"`
-		StorageClass string            `json:"storageClass" jsonschema:"required"`
+		Annotations   map[string]string `json:"annotations" jsonschema:"required"`
+		Enabled       bool              `json:"enabled" jsonschema:"required"`
+		Labels        map[string]string `json:"labels" jsonschema:"required"`
+		Size          resource.Quantity `json:"size" jsonschema:"required"`
+		StorageClass  string            `json:"storageClass" jsonschema:"required"`
+		NameOverwrite string            `json:"nameOverwrite"`
 	} `json:"persistentVolume" jsonschema:"required,deprecated"`
 	TieredConfig                  TieredStorageConfig `json:"tieredConfig" jsonschema:"deprecated"`
 	TieredStorageHostPath         string              `json:"tieredStorageHostPath" jsonschema:"deprecated"`
@@ -552,32 +553,36 @@ type Statefulset struct {
 	ExtraVolumeMounts string `json:"extraVolumeMounts"`
 	InitContainers    struct {
 		Configurator struct {
-			ExtraVolumeMounts string         `json:"extraVolumeMounts"`
-			Resources         map[string]any `json:"resources"`
+			ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
+			Resources         map[string]any       `json:"resources"`
 		} `json:"configurator"`
 		FSValidator struct {
-			Enabled           bool           `json:"enabled"`
-			Resources         map[string]any `json:"resources"`
-			ExtraVolumeMounts string         `json:"extraVolumeMounts"`
-			ExpectedFS        string         `json:"expectedFS"`
+			Enabled           bool                 `json:"enabled"`
+			Resources         map[string]any       `json:"resources"`
+			ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
+			ExpectedFS        string               `json:"expectedFS"`
 		} `json:"fsValidator"`
 		SetDataDirOwnership struct {
-			Enabled           bool           `json:"enabled"`
-			Resources         map[string]any `json:"resources"`
-			ExtraVolumeMounts string         `json:"extraVolumeMounts"`
+			Enabled           bool                 `json:"enabled"`
+			Resources         map[string]any       `json:"resources"`
+			ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
 		} `json:"setDataDirOwnership"`
 		SetTieredStorageCacheDirOwnership struct {
 			// Enabled           bool           `json:"enabled"`
-			Resources         map[string]any `json:"resources"`
-			ExtraVolumeMounts string         `json:"extraVolumeMounts"`
+			Resources         map[string]any       `json:"resources"`
+			ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
 		} `json:"setTieredStorageCacheDirOwnership"`
 		Tuning struct {
 			// Enabled           bool           `json:"enabled"`
-			Resources         map[string]any `json:"resources"`
-			ExtraVolumeMounts string         `json:"extraVolumeMounts"`
+			Resources         map[string]any       `json:"resources"`
+			ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
 		} `json:"tuning"`
-		ExtraInitContainers string `json:"extraInitContainers"`
+		ExtraInitContainers []corev1.Container `json:"extraInitContainers"`
 	} `json:"initContainers"`
+	InitContainerImage struct {
+		Repository string `json:"repository"`
+		Tag        string `json:"tag"`
+	} `json:"initContainerImage"`
 }
 
 // +gotohelm:ignore=true

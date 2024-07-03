@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda
   namespace: default
 spec:
@@ -49,7 +49,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-sts-lifecycle
   namespace: default
 stringData:
@@ -147,7 +147,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-users
   namespace: default
 stringData:
@@ -164,7 +164,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-config-watcher
   namespace: default
 stringData:
@@ -290,7 +290,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-configurator
   namespace: default
 stringData:
@@ -450,7 +450,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda
   namespace: default
 ---
@@ -475,7 +475,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-rpk
   namespace: default
 ---
@@ -544,7 +544,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
     monitoring.redpanda.com/enabled: "false"
   name: redpanda
   namespace: default
@@ -591,7 +591,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-external
   namespace: default
 spec:
@@ -724,7 +724,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
 spec:
   selector:
     matchLabels: 
@@ -743,10 +743,10 @@ spec:
         app.kubernetes.io/instance: redpanda
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: redpanda
-        helm.sh/chart: redpanda-5.8.11
+        helm.sh/chart: redpanda-6.0.0
         redpanda.com/poddisruptionbudget: redpanda
       annotations:
-        config.redpanda.com/checksum: cbdea1a5f6d2579415fa8d61135f18362458c5196a5181ebd6f8714a3c9561a8
+        config.redpanda.com/checksum: 6dfdbf1b4191b26496b68fe1b5f3cd75fa69002bd55dcbacd965d87db76a34ae
     spec:
       terminationGracePeriodSeconds: 90
       securityContext: 
@@ -754,61 +754,68 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       serviceAccountName: default
       initContainers:
-        - name: tuning
+        - command:
+          - /bin/bash
+          - -c
+          - rpk redpanda tune all
           image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
-          command:
-            - /bin/bash
-            - -c
-            - rpk redpanda tune all
+          name: tuning
+          resources: {}
           securityContext:
             capabilities:
-              add: ["SYS_RESOURCE"]
+              add:
+              - SYS_RESOURCE
             privileged: true
-            runAsUser: 0
             runAsGroup: 0
-          volumeMounts: 
-            - mountPath: /etc/secrets/users
-              name: users
-              readOnly: true
-            - name: redpanda
-              mountPath: /etc/redpanda
-        - name: redpanda-configurator
-          image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
-          command:
-            - /bin/bash
-            - -c
-            - 'trap "exit 0" TERM; exec $CONFIGURATOR_SCRIPT "${SERVICE_NAME}" "${KUBERNETES_NODE_NAME}" & wait $!'
+            runAsUser: 0
+          volumeMounts:
+          - mountPath: /etc/secrets/users
+            name: users
+            readOnly: true
+          - mountPath: /etc/redpanda
+            name: redpanda
+        - command:
+          - /bin/bash
+          - -c
+          - trap "exit 0" TERM; exec $CONFIGURATOR_SCRIPT "${SERVICE_NAME}" "${KUBERNETES_NODE_NAME}"
+            & wait $!
           env:
-            - name: CONFIGURATOR_SCRIPT
-              value: /etc/secrets/configurator/scripts/configurator.sh
-            - name: SERVICE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: KUBERNETES_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: HOST_IP_ADDRESS
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: status.hostIP
-          securityContext: 
+          - name: CONFIGURATOR_SCRIPT
+            value: /etc/secrets/configurator/scripts/configurator.sh
+          - name: SERVICE_NAME
+            valueFrom:
+              configMapKeyRef: null
+              fieldRef:
+                fieldPath: metadata.name
+              resourceFieldRef: null
+              secretKeyRef: null
+          - name: KUBERNETES_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: HOST_IP_ADDRESS
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.hostIP
+          image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
+          name: redpanda-configurator
+          resources: {}
+          securityContext:
             allowPrivilegeEscalation: null
             runAsGroup: 101
             runAsNonRoot: null
             runAsUser: 101
-          volumeMounts: 
-            - mountPath: /etc/secrets/users
-              name: users
-              readOnly: true
-            - name: config
-              mountPath: /etc/redpanda
-            - name: redpanda
-              mountPath: /tmp/base-config
-            - name: redpanda-configurator
-              mountPath: /etc/secrets/configurator/scripts/
+          volumeMounts:
+          - mountPath: /etc/secrets/users
+            name: users
+            readOnly: true
+          - mountPath: /etc/redpanda
+            name: config
+          - mountPath: /tmp/base-config
+            name: redpanda
+          - mountPath: /etc/secrets/configurator/scripts/
+            name: redpanda-configurator
       containers:
         - name: redpanda
           image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
@@ -1054,7 +1061,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-configuration
   namespace: default
 spec:
@@ -1136,7 +1143,7 @@ metadata:
     app.kubernetes.io/instance: redpanda
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redpanda
-    helm.sh/chart: redpanda-5.8.11
+    helm.sh/chart: redpanda-6.0.0
   name: redpanda-post-upgrade
   namespace: default
 spec:
