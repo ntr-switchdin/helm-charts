@@ -521,6 +521,9 @@ func statefulSetInitContainerConfigurator(dot *helmette.Dot) *corev1.Container {
 func StatefulSetContainers(dot *helmette.Dot) []corev1.Container {
 	var containers []corev1.Container
 	containers = append(containers, *statefulSetContainerRedpanda(dot))
+	if c := statefulSetContainerConfigWatcher(dot); c != nil {
+		containers = append(containers, *c)
+	}
 	return containers
 }
 
@@ -752,4 +755,37 @@ func adminApiURLs(dot *helmette.Dot) string {
 		InternalDomain(dot),
 		values.Listeners.Admin.Port,
 	)
+}
+
+func statefulSetContainerConfigWatcher(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	if !values.Statefulset.SideCars.ConfigWatcher.Enabled {
+		return nil
+	}
+
+	return &corev1.Container{
+		Name:    "config-watcher",
+		Image:   fmt.Sprintf(`%s:%s`, values.Image.Repository, Tag(dot)),
+		Command: []string{`/bin/sh`},
+		Args: []string{
+			`-c`,
+			`trap "exit 0" TERM; exec /etc/secrets/config-watcher/scripts/sasl-user.sh & wait $!`,
+		},
+		Resources:       helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.SideCars.ConfigWatcher.Resources),
+		SecurityContext: values.Statefulset.SideCars.ConfigWatcher.SecurityContext,
+		VolumeMounts: append(
+			append(CommonMounts(dot),
+				corev1.VolumeMount{
+					Name:      "config",
+					MountPath: "/etc/redpanda",
+				},
+				corev1.VolumeMount{
+					Name:      fmt.Sprintf(`%s-config-watcher`, Fullname(dot)),
+					MountPath: "/etc/secrets/config-watcher/scripts",
+				},
+			),
+			values.Statefulset.SideCars.ConfigWatcher.ExtraVolumeMounts...,
+		),
+	}
 }

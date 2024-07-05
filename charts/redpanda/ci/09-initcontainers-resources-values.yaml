@@ -16,7 +16,7 @@
 statefulset:
   sideCars:
     configWatcher:
-      extraVolumeMounts: |-
+      extraVolumeMounts:
         - name: test-extra-volume
           mountPath: /fake/lifecycle
   initContainers:

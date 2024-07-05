@@ -4798,7 +4798,30 @@
                   "type": "boolean"
                 },
                 "extraVolumeMounts": {
-                  "type": "string"
+                  "items": {
+                    "properties": {
+                      "mountPath": {
+                        "type": "string"
+                      },
+                      "mountPropagation": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "readOnly": {
+                        "type": "boolean"
+                      },
+                      "subPath": {
+                        "type": "string"
+                      },
+                      "subPathExpr": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
                 },
                 "resources": {
                   "type": "object"

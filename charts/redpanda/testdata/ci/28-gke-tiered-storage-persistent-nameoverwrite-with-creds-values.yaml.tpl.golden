@@ -1045,22 +1045,25 @@ spec:
             name: datadir
           - mountPath: /var/lib/redpanda/data/cloud_storage_cache
             name: shadow-index-cache
-        - name: config-watcher
-          image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
+        - args:
+          - -c
+          - trap "exit 0" TERM; exec /etc/secrets/config-watcher/scripts/sasl-user.sh & wait
+            $!
           command:
-            - /bin/sh
-          args:
-            - -c
-            - 'trap "exit 0" TERM; exec /etc/secrets/config-watcher/scripts/sasl-user.sh & wait $!'
-          volumeMounts: 
-            - mountPath: /etc/tls/certs/default
-              name: redpanda-default-cert
-            - mountPath: /etc/tls/certs/external
-              name: redpanda-external-cert
-            - name: config
-              mountPath: /etc/redpanda
-            - name: redpanda-config-watcher
-              mountPath: /etc/secrets/config-watcher/scripts
+          - /bin/sh
+          image: docker.redpanda.com/redpandadata/redpanda:v24.1.8
+          name: config-watcher
+          resources: {}
+          securityContext: {}
+          volumeMounts:
+          - mountPath: /etc/tls/certs/default
+            name: redpanda-default-cert
+          - mountPath: /etc/tls/certs/external
+            name: redpanda-external-cert
+          - mountPath: /etc/redpanda
+            name: config
+          - mountPath: /etc/secrets/config-watcher/scripts
+            name: redpanda-config-watcher
       volumes: 
         - name: redpanda-default-cert
           secret:

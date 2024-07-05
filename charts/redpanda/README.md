@@ -907,7 +907,7 @@ Number of Redpanda brokers (Redpanda Data recommends setting this to the number 
 
 ### [statefulset.sideCars.configWatcher.extraVolumeMounts](https://artifacthub.io/packages/helm/redpanda-data/redpanda?modal=values&path=statefulset.sideCars.configWatcher.extraVolumeMounts)
 
-**Default:** `""`
+**Default:** `[]`
 
 ### [statefulset.sideCars.configWatcher.resources](https://artifacthub.io/packages/helm/redpanda-data/redpanda?modal=values&path=statefulset.sideCars.configWatcher.resources)
 

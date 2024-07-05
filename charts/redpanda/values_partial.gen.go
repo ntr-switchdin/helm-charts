@@ -228,7 +228,7 @@ type PartialStatefulset struct {
 	SideCars           *struct {
 		ConfigWatcher *struct {
 			Enabled           *bool                   "json:\"enabled,omitempty\""
-			ExtraVolumeMounts *string                 "json:\"extraVolumeMounts,omitempty\""
+			ExtraVolumeMounts []corev1.VolumeMount    "json:\"extraVolumeMounts,omitempty\""
 			Resources         map[string]any          "json:\"resources,omitempty\""
 			SecurityContext   *corev1.SecurityContext "json:\"securityContext,omitempty\""
 		} "json:\"configWatcher,omitempty\""

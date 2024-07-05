@@ -274,6 +274,10 @@
 {{- range $_ := (list 1) -}}
 {{- $containers := (coalesce nil) -}}
 {{- $containers = (concat (default (list ) $containers) (list (get (fromJson (include "redpanda.statefulSetContainerRedpanda" (dict "a" (list $dot) ))) "r"))) -}}
+{{- $c_10 := (get (fromJson (include "redpanda.statefulSetContainerConfigWatcher" (dict "a" (list $dot) ))) "r") -}}
+{{- if (ne $c_10 (coalesce nil)) -}}
+{{- $containers = (concat (default (list ) $containers) (list $c_10)) -}}
+{{- end -}}
 {{- (dict "r" $containers) | toJson -}}
 {{- break -}}
 {{- end -}}
@@ -334,6 +338,19 @@
 {{- range $_ := (list 1) -}}
 {{- $values := $dot.Values.AsMap -}}
 {{- (dict "r" (printf `${SERVICE_NAME}.%s:%d` (get (fromJson (include "redpanda.InternalDomain" (dict "a" (list $dot) ))) "r") ($values.listeners.admin.port | int))) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "redpanda.statefulSetContainerConfigWatcher" -}}
+{{- $dot := (index .a 0) -}}
+{{- range $_ := (list 1) -}}
+{{- $values := $dot.Values.AsMap -}}
+{{- if (not $values.statefulset.sideCars.configWatcher.enabled) -}}
+{{- (dict "r" (coalesce nil)) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- (dict "r" (mustMergeOverwrite (dict "name" "" "resources" (dict ) ) (dict "name" "config-watcher" "image" (printf `%s:%s` $values.image.repository (get (fromJson (include "redpanda.Tag" (dict "a" (list $dot) ))) "r")) "command" (list `/bin/sh`) "args" (list `-c` `trap "exit 0" TERM; exec /etc/secrets/config-watcher/scripts/sasl-user.sh & wait $!`) "resources" $values.statefulset.sideCars.configWatcher.resources "securityContext" $values.statefulset.sideCars.configWatcher.securityContext "volumeMounts" (concat (default (list ) (concat (default (list ) (get (fromJson (include "redpanda.CommonMounts" (dict "a" (list $dot) ))) "r")) (list (mustMergeOverwrite (dict "name" "" "mountPath" "" ) (dict "name" "config" "mountPath" "/etc/redpanda" )) (mustMergeOverwrite (dict "name" "" "mountPath" "" ) (dict "name" (printf `%s-config-watcher` (get (fromJson (include "redpanda.Fullname" (dict "a" (list $dot) ))) "r")) "mountPath" "/etc/secrets/config-watcher/scripts" ))))) (default (list ) $values.statefulset.sideCars.configWatcher.extraVolumeMounts)) ))) | toJson -}}
 {{- break -}}
 {{- end -}}
 {{- end -}}

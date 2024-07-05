@@ -535,7 +535,7 @@ type Statefulset struct {
 	SideCars           struct {
 		ConfigWatcher struct {
 			Enabled           bool                    `json:"enabled"`
-			ExtraVolumeMounts string                  `json:"extraVolumeMounts"`
+			ExtraVolumeMounts []corev1.VolumeMount    `json:"extraVolumeMounts"`
 			Resources         map[string]any          `json:"resources"`
 			SecurityContext   *corev1.SecurityContext `json:"securityContext"`
 		} `json:"configWatcher"`

@@ -71,29 +71,6 @@ spec:
 {{- if not (empty $containers) }}
 {{- toYaml $containers | nindent 8 }}
 {{- end }}
-{{- if .Values.statefulset.sideCars.configWatcher.enabled }}
-        - name: config-watcher
-          image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
-          command:
-            - /bin/sh
-          args:
-            - -c
-            - 'trap "exit 0" TERM; exec /etc/secrets/config-watcher/scripts/sasl-user.sh & wait $!'
-  {{- if get .Values.statefulset.sideCars.configWatcher "resources" }}
-          resources: {{- toYaml .Values.statefulset.sideCars.configWatcher.resources | nindent 12 }}
-  {{- end }}
-  {{- if get .Values.statefulset.sideCars.configWatcher "securityContext" }}
-          securityContext: {{- toYaml .Values.statefulset.sideCars.configWatcher.securityContext | nindent 12 }}
-  {{- end }}
-          volumeMounts: {{ include "common-mounts" . | nindent 12 }}
-            - name: config
-              mountPath: /etc/redpanda
-            - name: {{ template "redpanda.fullname" . }}-config-watcher
-              mountPath: /etc/secrets/config-watcher/scripts
-  {{- if dig "sideCars" "configWatcher" "extraVolumeMounts" false .Values.statefulset -}}
-    {{ tpl .Values.statefulset.sideCars.configWatcher.extraVolumeMounts . | nindent 12 }}
-  {{- end }}
-{{- end }}
       {{- if and .Values.rbac.enabled .Values.statefulset.sideCars.controllers.enabled }}
         - name: redpanda-controllers
           image: {{ .Values.statefulset.sideCars.controllers.image.repository }}:{{ .Values.statefulset.sideCars.controllers.image.tag }}

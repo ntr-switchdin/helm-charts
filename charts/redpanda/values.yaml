@@ -746,7 +746,7 @@ statefulset:
       # https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/#static-policy
       resources: {}
       securityContext: {}
-      extraVolumeMounts: |-
+      extraVolumeMounts: []
     # Configure extra controllers to run as sidecars inside the Pods running Redpanda brokers.
     # Available controllers:
     # - Decommission Controller: The Decommission Controller ensures smooth scaling down operations.
