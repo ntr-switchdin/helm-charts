@@ -1135,8 +1135,8 @@ spec:
             secretName: redpanda-fs-validator
         - name: test-extra-volume
           secret:
+            defaultMode: 508
             secretName: redpanda-sts-lifecycle
-            defaultMode: 0774
         - name: datadir
           persistentVolumeClaim:
             claimName: datadir

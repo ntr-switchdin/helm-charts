@@ -80,10 +80,10 @@ statefulset:
           - |
             set -xe
             echo "Hello World!"
-  extraVolumes: |-
+  extraVolumes:
     - name: test-extra-volume
       secret:
-        secretName: {{ (include "redpanda.fullname" . | trunc 50 ) }}-sts-lifecycle
+        secretName: redpanda-sts-lifecycle
         defaultMode: 0774
   extraVolumeMounts:
     - name: test-extra-volume

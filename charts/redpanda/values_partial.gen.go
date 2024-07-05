@@ -246,7 +246,7 @@ type PartialStatefulset struct {
 			Run                []string                "json:\"run,omitempty\""
 		} "json:\"controllers,omitempty\""
 	} "json:\"sideCars,omitempty\" jsonschema:\"required\""
-	ExtraVolumes      *string              "json:\"extraVolumes,omitempty\""
+	ExtraVolumes      []corev1.Volume      "json:\"extraVolumes,omitempty\""
 	ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""
 	InitContainers    *struct {
 		Configurator *struct {

@@ -220,6 +220,8 @@ func StatefulSetVolumes(dot *helmette.Dot) []corev1.Volume {
 		volumes = append(volumes, *vol)
 	}
 
+	volumes = append(volumes, values.Statefulset.ExtraVolumes...)
+
 	return volumes
 }
 

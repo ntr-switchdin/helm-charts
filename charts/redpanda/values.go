@@ -553,7 +553,7 @@ type Statefulset struct {
 			Run                []string                `json:"run"`
 		} `json:"controllers"`
 	} `json:"sideCars" jsonschema:"required"`
-	ExtraVolumes      string               `json:"extraVolumes"`
+	ExtraVolumes      []corev1.Volume      `json:"extraVolumes"`
 	ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
 	InitContainers    struct {
 		Configurator struct {

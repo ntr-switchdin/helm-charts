@@ -707,7 +707,7 @@ DEPRECATED Please use statefulset.podTemplate.annotations. Annotations are used 
 
 ### [statefulset.extraVolumes](https://artifacthub.io/packages/helm/redpanda-data/redpanda?modal=values&path=statefulset.extraVolumes)
 
-**Default:** `""`
+**Default:** `[]`
 
 ### [statefulset.initContainerImage.repository](https://artifacthub.io/packages/helm/redpanda-data/redpanda?modal=values&path=statefulset.initContainerImage.repository)
 

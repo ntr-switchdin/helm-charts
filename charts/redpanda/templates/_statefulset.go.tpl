@@ -88,6 +88,7 @@
 {{- if (ne $vol_5 (coalesce nil)) -}}
 {{- $volumes = (concat (default (list ) $volumes) (list $vol_5)) -}}
 {{- end -}}
+{{- $volumes = (concat (default (list ) $volumes) (default (list ) $values.statefulset.extraVolumes)) -}}
 {{- (dict "r" $volumes) | toJson -}}
 {{- break -}}
 {{- end -}}

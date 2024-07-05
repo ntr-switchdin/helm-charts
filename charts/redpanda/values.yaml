@@ -852,7 +852,7 @@ statefulset:
   # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination
   terminationGracePeriodSeconds: 90
   ## Additional Volumes that you mount
-  extraVolumes: |-
+  extraVolumes: []
   ## Additional Volume mounts for redpanda container
   extraVolumeMounts: []
 
