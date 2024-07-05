@@ -524,6 +524,9 @@ func StatefulSetContainers(dot *helmette.Dot) []corev1.Container {
 	if c := statefulSetContainerConfigWatcher(dot); c != nil {
 		containers = append(containers, *c)
 	}
+	if c := statefulSetContainerControllers(dot); c != nil {
+		containers = append(containers, *c)
+	}
 	return containers
 }
 
@@ -787,5 +790,43 @@ func statefulSetContainerConfigWatcher(dot *helmette.Dot) *corev1.Container {
 			),
 			values.Statefulset.SideCars.ConfigWatcher.ExtraVolumeMounts...,
 		),
+	}
+}
+
+func statefulSetContainerControllers(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	if !values.RBAC.Enabled || !values.Statefulset.SideCars.Controllers.Enabled {
+		return nil
+	}
+
+	return &corev1.Container{
+		Name: "redpanda-controllers",
+		Image: fmt.Sprintf(`%s:%s`,
+			values.Statefulset.SideCars.Controllers.Image.Repository,
+			values.Statefulset.SideCars.Controllers.Image.Tag,
+		),
+		Command: []string{`/manager`},
+		Args: []string{
+			`--operator-mode=false`,
+			fmt.Sprintf(`--namespace=%s`, dot.Release.Namespace),
+			fmt.Sprintf(`--health-probe-bind-address=%s`,
+				values.Statefulset.SideCars.Controllers.HealthProbeAddress,
+			),
+			fmt.Sprintf(`--metrics-bind-address=%s`,
+				values.Statefulset.SideCars.Controllers.MetricsAddress,
+			),
+			fmt.Sprintf(`--additional-controllers=%s`,
+				helmette.Join(",", values.Statefulset.SideCars.Controllers.Run),
+			),
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "REDPANDA_HELM_RELEASE_NAME",
+				Value: dot.Release.Name,
+			},
+		},
+		Resources:       helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.SideCars.Controllers.Resources),
+		SecurityContext: values.Statefulset.SideCars.Controllers.SecurityContext,
 	}
 }

@@ -278,6 +278,10 @@
 {{- if (ne $c_10 (coalesce nil)) -}}
 {{- $containers = (concat (default (list ) $containers) (list $c_10)) -}}
 {{- end -}}
+{{- $c_11 := (get (fromJson (include "redpanda.statefulSetContainerControllers" (dict "a" (list $dot) ))) "r") -}}
+{{- if (ne $c_11 (coalesce nil)) -}}
+{{- $containers = (concat (default (list ) $containers) (list $c_11)) -}}
+{{- end -}}
 {{- (dict "r" $containers) | toJson -}}
 {{- break -}}
 {{- end -}}
@@ -351,6 +355,19 @@
 {{- break -}}
 {{- end -}}
 {{- (dict "r" (mustMergeOverwrite (dict "name" "" "resources" (dict ) ) (dict "name" "config-watcher" "image" (printf `%s:%s` $values.image.repository (get (fromJson (include "redpanda.Tag" (dict "a" (list $dot) ))) "r")) "command" (list `/bin/sh`) "args" (list `-c` `trap "exit 0" TERM; exec /etc/secrets/config-watcher/scripts/sasl-user.sh & wait $!`) "resources" $values.statefulset.sideCars.configWatcher.resources "securityContext" $values.statefulset.sideCars.configWatcher.securityContext "volumeMounts" (concat (default (list ) (concat (default (list ) (get (fromJson (include "redpanda.CommonMounts" (dict "a" (list $dot) ))) "r")) (list (mustMergeOverwrite (dict "name" "" "mountPath" "" ) (dict "name" "config" "mountPath" "/etc/redpanda" )) (mustMergeOverwrite (dict "name" "" "mountPath" "" ) (dict "name" (printf `%s-config-watcher` (get (fromJson (include "redpanda.Fullname" (dict "a" (list $dot) ))) "r")) "mountPath" "/etc/secrets/config-watcher/scripts" ))))) (default (list ) $values.statefulset.sideCars.configWatcher.extraVolumeMounts)) ))) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "redpanda.statefulSetContainerControllers" -}}
+{{- $dot := (index .a 0) -}}
+{{- range $_ := (list 1) -}}
+{{- $values := $dot.Values.AsMap -}}
+{{- if (or (not $values.rbac.enabled) (not $values.statefulset.sideCars.controllers.enabled)) -}}
+{{- (dict "r" (coalesce nil)) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- (dict "r" (mustMergeOverwrite (dict "name" "" "resources" (dict ) ) (dict "name" "redpanda-controllers" "image" (printf `%s:%s` $values.statefulset.sideCars.controllers.image.repository $values.statefulset.sideCars.controllers.image.tag) "command" (list `/manager`) "args" (list `--operator-mode=false` (printf `--namespace=%s` $dot.Release.Namespace) (printf `--health-probe-bind-address=%s` $values.statefulset.sideCars.controllers.healthProbeAddress) (printf `--metrics-bind-address=%s` $values.statefulset.sideCars.controllers.metricsAddress) (printf `--additional-controllers=%s` (join "," $values.statefulset.sideCars.controllers.run))) "env" (list (mustMergeOverwrite (dict "name" "" ) (dict "name" "REDPANDA_HELM_RELEASE_NAME" "value" $dot.Release.Name ))) "resources" $values.statefulset.sideCars.controllers.resources "securityContext" $values.statefulset.sideCars.controllers.securityContext ))) | toJson -}}
 {{- break -}}
 {{- end -}}
 {{- end -}}

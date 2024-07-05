@@ -4925,6 +4925,9 @@
                 "enabled": {
                   "type": "boolean"
                 },
+                "healthProbeAddress": {
+                  "type": "string"
+                },
                 "image": {
                   "properties": {
                     "repository": {
@@ -4943,7 +4946,16 @@
                   ],
                   "type": "object"
                 },
+                "metricsAddress": {
+                  "type": "string"
+                },
                 "resources": true,
+                "run": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
                 "securityContext": {
                   "properties": {
                     "allowPrivilegeEscalation": {

@@ -1208,19 +1208,20 @@ spec:
             name: config
           - mountPath: /etc/secrets/config-watcher/scripts
             name: redpanda-config-watcher
-        - name: redpanda-controllers
-          image: docker.redpanda.com/redpandadata/redpanda-operator:v2.1.10-23.2.18
+        - args:
+          - --operator-mode=false
+          - --namespace=default
+          - --health-probe-bind-address=:8085
+          - --metrics-bind-address=:9082
+          - --additional-controllers=all
           command:
-            - /manager
-          args:
-            - --operator-mode=false
-            - --namespace=default
-            - --health-probe-bind-address=:8085
-            - --metrics-bind-address=:9082
-            - --additional-controllers=all
+          - /manager
           env:
-            - name: REDPANDA_HELM_RELEASE_NAME
-              value: redpanda
+          - name: REDPANDA_HELM_RELEASE_NAME
+            value: redpanda
+          image: docker.redpanda.com/redpandadata/redpanda-operator:v2.1.10-23.2.18
+          name: redpanda-controllers
+          resources: {}
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false

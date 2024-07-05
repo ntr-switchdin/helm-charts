@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	cmmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/invopop/jsonschema"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/redpanda-data/helm-charts/pkg/gotohelm/helmette"
@@ -544,10 +544,13 @@ type Statefulset struct {
 				Tag        ImageTag `json:"tag" jsonschema:"required,default=Chart.appVersion"`
 				Repository string   `json:"repository" jsonschema:"required,default=docker.redpanda.com/redpandadata/redpanda-operator"`
 			} `json:"image"`
-			Enabled         bool                    `json:"enabled"`
-			CreateRBAC      bool                    `json:"createRBAC"`
-			Resources       any                     `json:"resources"`
-			SecurityContext *corev1.SecurityContext `json:"securityContext"`
+			Enabled            bool                    `json:"enabled"`
+			CreateRBAC         bool                    `json:"createRBAC"`
+			Resources          any                     `json:"resources"`
+			SecurityContext    *corev1.SecurityContext `json:"securityContext"`
+			HealthProbeAddress string                  `json:"healthProbeAddress"`
+			MetricsAddress     string                  `json:"metricsAddress"`
+			Run                []string                `json:"run"`
 		} `json:"controllers"`
 	} `json:"sideCars" jsonschema:"required"`
 	ExtraVolumes      string               `json:"extraVolumes"`
@@ -744,7 +747,7 @@ type TLSCert struct {
 	CAEnabled             bool                         `json:"caEnabled" jsonschema:"required"`
 	ApplyInternalDNSNames *bool                        `json:"applyInternalDNSNames"`
 	Duration              string                       `json:"duration" jsonschema:"pattern=.*[smh]$"`
-	IssuerRef             *cmmeta.ObjectReference      `json:"issuerRef"`
+	IssuerRef             *cmmetav1.ObjectReference    `json:"issuerRef"`
 	SecretRef             *corev1.LocalObjectReference `json:"secretRef"`
 }
 
