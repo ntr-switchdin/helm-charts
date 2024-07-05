@@ -517,3 +517,239 @@ func statefulSetInitContainerConfigurator(dot *helmette.Dot) *corev1.Container {
 		Resources: helmette.UnmarshalInto[corev1.ResourceRequirements](values.Statefulset.InitContainers.Configurator.Resources),
 	}
 }
+
+func StatefulSetContainers(dot *helmette.Dot) []corev1.Container {
+	var containers []corev1.Container
+	containers = append(containers, *statefulSetContainerRedpanda(dot))
+	return containers
+}
+
+func statefulSetContainerRedpanda(dot *helmette.Dot) *corev1.Container {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	internalAdvertiseAddress := fmt.Sprintf("%s.%s", "$(SERVICE_NAME)", InternalDomain(dot))
+
+	container := &corev1.Container{
+		Name:  Name(dot),
+		Image: fmt.Sprintf(`%s:%s`, values.Image.Repository, Tag(dot)),
+		Env:   StatefulSetRedpandaEnv(dot),
+		Lifecycle: &corev1.Lifecycle{
+			// finish the lifecycle scripts with "true" to prevent them from terminating the pod prematurely
+			PostStart: &corev1.LifecycleHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						`/bin/bash`,
+						`-c`,
+						helmette.Join("\n", []string{
+							fmt.Sprintf(`timeout -v %d bash -x /var/lifecycle/postStart.sh`,
+								values.Statefulset.TerminationGracePeriodSeconds/2,
+							),
+							`true`,
+							``,
+						}),
+					},
+				},
+			},
+			PreStop: &corev1.LifecycleHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						`/bin/bash`,
+						`-c`,
+						helmette.Join("\n", []string{
+							fmt.Sprintf(`timeout -v %d bash -x /var/lifecycle/preStop.sh`,
+								values.Statefulset.TerminationGracePeriodSeconds/2,
+							),
+							`true # do not fail and cause the pod to terminate`,
+							``,
+						}),
+					},
+				},
+			},
+		},
+		StartupProbe: &corev1.Probe{
+			// the startupProbe checks to see that the admin api is listening and that the broker has a node_id assigned. This
+			// check is only used to delay the start of the liveness and readiness probes until it passes.
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						`/bin/sh`,
+						`-c`,
+						helmette.Join("\n", []string{
+							`set -e`,
+							fmt.Sprintf(`RESULT=$(curl --silent --fail -k -m 5 %s "%s://%s/v1/status/ready")`,
+								adminTLSCurlFlags(dot),
+								adminInternalHTTPProtocol(dot),
+								adminApiURLs(dot),
+							),
+							`echo $RESULT`,
+							`echo $RESULT | grep ready`,
+							``,
+						}),
+					},
+				},
+			},
+			InitialDelaySeconds: values.Statefulset.StartupProbe.InitialDelaySeconds,
+			PeriodSeconds:       values.Statefulset.StartupProbe.PeriodSeconds,
+			FailureThreshold:    values.Statefulset.StartupProbe.FailureThreshold,
+		},
+		LivenessProbe: &corev1.Probe{
+			// the livenessProbe just checks to see that the admin api is listening and returning 200s.
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						`/bin/sh`,
+						`-c`,
+						fmt.Sprintf(`curl --silent --fail -k -m 5 %s "%s://%s/v1/status/ready"`,
+							adminTLSCurlFlags(dot),
+							adminInternalHTTPProtocol(dot),
+							adminApiURLs(dot),
+						),
+					},
+				},
+			},
+			InitialDelaySeconds: values.Statefulset.LivenessProbe.InitialDelaySeconds,
+			PeriodSeconds:       values.Statefulset.LivenessProbe.PeriodSeconds,
+			FailureThreshold:    values.Statefulset.LivenessProbe.FailureThreshold,
+		},
+		Command: []string{
+			`rpk`,
+			`redpanda`,
+			`start`,
+			fmt.Sprintf(`--advertise-rpc-addr=%s:%d`,
+				internalAdvertiseAddress,
+				values.Listeners.RPC.Port,
+			),
+		},
+		VolumeMounts: append(StatefulSetVolumeMounts(dot),
+			values.Statefulset.ExtraVolumeMounts...),
+		SecurityContext: ptr.To(ContainerSecurityContext(dot)),
+		Resources:       corev1.ResourceRequirements{},
+	}
+
+	if !helmette.Dig(values.Config.Node, false, `recovery_mode_enabled`).(bool) {
+		// the readiness probe just checks that the cluster is healthy according to rpk cluster health.
+		// It's ok that this cluster-wide check affects all the pods as it's only used for the
+		// PodDisruptionBudget and we don't want to roll any pods if the Redpanda cluster isn't healthy.
+		// https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets
+		// All services set `publishNotReadyAddresses:true` to prevent this from affecting cluster access
+		container.ReadinessProbe = &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						`/bin/sh`,
+						`-c`,
+						helmette.Join("\n", []string{
+							`set -x`,
+							`RESULT=$(rpk cluster health)`,
+							`echo $RESULT`,
+							`echo $RESULT | grep 'Healthy:.*true'`,
+							``,
+						}),
+					},
+				},
+			},
+			InitialDelaySeconds: values.Statefulset.ReadinessProbe.InitialDelaySeconds,
+			TimeoutSeconds:      values.Statefulset.ReadinessProbe.TimeoutSeconds,
+			PeriodSeconds:       values.Statefulset.ReadinessProbe.PeriodSeconds,
+			SuccessThreshold:    values.Statefulset.ReadinessProbe.SuccessThreshold,
+			FailureThreshold:    values.Statefulset.ReadinessProbe.FailureThreshold,
+		}
+	}
+
+	// admin http kafka schemaRegistry rpc
+	container.Ports = append(container.Ports, corev1.ContainerPort{
+		Name:          "admin",
+		ContainerPort: values.Listeners.Admin.Port,
+	})
+	for externalName, external := range values.Listeners.Admin.External {
+		if external.IsEnabled() {
+			// The original template used
+			// $external.port > 0 &&
+			// [ $external.enabled ||
+			//   (values.External.Enabled && (dig "enabled" true $external)
+			// ]
+			// ... which is equivalent to the above check
+			container.Ports = append(container.Ports, corev1.ContainerPort{
+				Name:          fmt.Sprintf("admin-%.8s", helmette.Lower(externalName)),
+				ContainerPort: external.Port,
+			})
+		}
+	}
+	container.Ports = append(container.Ports, corev1.ContainerPort{
+		Name:          "http",
+		ContainerPort: values.Listeners.HTTP.Port,
+	})
+	for externalName, external := range values.Listeners.HTTP.External {
+		if external.IsEnabled() {
+			container.Ports = append(container.Ports, corev1.ContainerPort{
+				Name:          fmt.Sprintf("http-%.8s", helmette.Lower(externalName)),
+				ContainerPort: external.Port,
+			})
+		}
+	}
+	container.Ports = append(container.Ports, corev1.ContainerPort{
+		Name:          "kafka",
+		ContainerPort: values.Listeners.Kafka.Port,
+	})
+	for externalName, external := range values.Listeners.Kafka.External {
+		if external.IsEnabled() {
+			container.Ports = append(container.Ports, corev1.ContainerPort{
+				Name:          fmt.Sprintf("kafka-%.8s", helmette.Lower(externalName)),
+				ContainerPort: external.Port,
+			})
+		}
+	}
+	container.Ports = append(container.Ports, corev1.ContainerPort{
+		Name:          "rpc",
+		ContainerPort: values.Listeners.RPC.Port,
+	})
+	container.Ports = append(container.Ports, corev1.ContainerPort{
+		Name:          "schemaregistry",
+		ContainerPort: values.Listeners.SchemaRegistry.Port,
+	})
+	for externalName, external := range values.Listeners.SchemaRegistry.External {
+		if external.IsEnabled() {
+			container.Ports = append(container.Ports, corev1.ContainerPort{
+				Name:          fmt.Sprintf("schema-%.8s", helmette.Lower(externalName)),
+				ContainerPort: external.Port,
+			})
+		}
+	}
+
+	if values.Storage.IsTieredStorageEnabled() && storageTieredMountType(dot) != "none" {
+		name := "tiered-storage-dir"
+		if values.Storage.PersistentVolume != nil && values.Storage.PersistentVolume.NameOverwrite != "" {
+			name = values.Storage.PersistentVolume.NameOverwrite
+		}
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      name,
+				MountPath: storageTieredCacheDirectory(dot),
+			},
+		)
+	}
+
+	container.Resources.Limits = helmette.UnmarshalInto[corev1.ResourceList](map[string]any{
+		"cpu":    values.Resources.CPU.Cores,
+		"memory": values.Resources.Memory.Container.Max,
+	})
+
+	if values.Resources.Memory.Container.Min != nil {
+		container.Resources.Requests = helmette.UnmarshalInto[corev1.ResourceList](map[string]any{
+			"cpu":    values.Resources.CPU.Cores,
+			"memory": *values.Resources.Memory.Container.Min,
+		})
+	}
+
+	return container
+}
+
+// adminApiURLs was: admin-api-urls
+func adminApiURLs(dot *helmette.Dot) string {
+	values := helmette.Unwrap[Values](dot.Values)
+
+	return fmt.Sprintf(`${SERVICE_NAME}.%s:%d`,
+		InternalDomain(dot),
+		values.Listeners.Admin.Port,
+	)
+}

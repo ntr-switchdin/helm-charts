@@ -191,19 +191,21 @@ type PartialStatefulset struct {
 		MaxUnavailable *int "json:\"maxUnavailable,omitempty\" jsonschema:\"required\""
 	} "json:\"budget,omitempty\" jsonschema:\"required\""
 	StartupProbe *struct {
-		InitialDelaySeconds *int "json:\"initialDelaySeconds,omitempty\" jsonschema:\"required\""
-		FailureThreshold    *int "json:\"failureThreshold,omitempty\" jsonschema:\"required\""
-		PeriodSeconds       *int "json:\"periodSeconds,omitempty\" jsonschema:\"required\""
+		InitialDelaySeconds *int32 "json:\"initialDelaySeconds,omitempty\" jsonschema:\"required\""
+		FailureThreshold    *int32 "json:\"failureThreshold,omitempty\" jsonschema:\"required\""
+		PeriodSeconds       *int32 "json:\"periodSeconds,omitempty\" jsonschema:\"required\""
 	} "json:\"startupProbe,omitempty\" jsonschema:\"required\""
 	LivenessProbe *struct {
-		InitialDelaySeconds *int "json:\"initialDelaySeconds,omitempty\" jsonschema:\"required\""
-		FailureThreshold    *int "json:\"failureThreshold,omitempty\" jsonschema:\"required\""
-		PeriodSeconds       *int "json:\"periodSeconds,omitempty\" jsonschema:\"required\""
+		InitialDelaySeconds *int32 "json:\"initialDelaySeconds,omitempty\" jsonschema:\"required\""
+		FailureThreshold    *int32 "json:\"failureThreshold,omitempty\" jsonschema:\"required\""
+		PeriodSeconds       *int32 "json:\"periodSeconds,omitempty\" jsonschema:\"required\""
 	} "json:\"livenessProbe,omitempty\" jsonschema:\"required\""
 	ReadinessProbe *struct {
-		InitialDelaySeconds *int "json:\"initialDelaySeconds,omitempty\" jsonschema:\"required\""
-		FailureThreshold    *int "json:\"failureThreshold,omitempty\" jsonschema:\"required\""
-		PeriodSeconds       *int "json:\"periodSeconds,omitempty\" jsonschema:\"required\""
+		InitialDelaySeconds *int32 "json:\"initialDelaySeconds,omitempty\" jsonschema:\"required\""
+		FailureThreshold    *int32 "json:\"failureThreshold,omitempty\" jsonschema:\"required\""
+		PeriodSeconds       *int32 "json:\"periodSeconds,omitempty\" jsonschema:\"required\""
+		SuccessThreshold    *int32 "json:\"successThreshold,omitempty\""
+		TimeoutSeconds      *int32 "json:\"timeoutSeconds,omitempty\""
 	} "json:\"readinessProbe,omitempty\" jsonschema:\"required\""
 	PodAffinity     map[string]any "json:\"podAffinity,omitempty\" jsonschema:\"required\""
 	PodAntiAffinity *struct {
@@ -241,8 +243,8 @@ type PartialStatefulset struct {
 			SecurityContext *corev1.SecurityContext "json:\"securityContext,omitempty\""
 		} "json:\"controllers,omitempty\""
 	} "json:\"sideCars,omitempty\" jsonschema:\"required\""
-	ExtraVolumes      *string "json:\"extraVolumes,omitempty\""
-	ExtraVolumeMounts *string "json:\"extraVolumeMounts,omitempty\""
+	ExtraVolumes      *string              "json:\"extraVolumes,omitempty\""
+	ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""
 	InitContainers    *struct {
 		Configurator *struct {
 			ExtraVolumeMounts []corev1.VolumeMount "json:\"extraVolumeMounts,omitempty\""

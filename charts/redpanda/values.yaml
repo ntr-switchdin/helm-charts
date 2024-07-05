@@ -854,7 +854,7 @@ statefulset:
   ## Additional Volumes that you mount
   extraVolumes: |-
   ## Additional Volume mounts for redpanda container
-  extraVolumeMounts: |-
+  extraVolumeMounts: []
 
 # -- Service account management.
 serviceAccount:

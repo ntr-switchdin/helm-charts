@@ -269,3 +269,72 @@
 {{- end -}}
 {{- end -}}
 
+{{- define "redpanda.StatefulSetContainers" -}}
+{{- $dot := (index .a 0) -}}
+{{- range $_ := (list 1) -}}
+{{- $containers := (coalesce nil) -}}
+{{- $containers = (concat (default (list ) $containers) (list (get (fromJson (include "redpanda.statefulSetContainerRedpanda" (dict "a" (list $dot) ))) "r"))) -}}
+{{- (dict "r" $containers) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "redpanda.statefulSetContainerRedpanda" -}}
+{{- $dot := (index .a 0) -}}
+{{- range $_ := (list 1) -}}
+{{- $values := $dot.Values.AsMap -}}
+{{- $internalAdvertiseAddress := (printf "%s.%s" "$(SERVICE_NAME)" (get (fromJson (include "redpanda.InternalDomain" (dict "a" (list $dot) ))) "r")) -}}
+{{- $container := (mustMergeOverwrite (dict "name" "" "resources" (dict ) ) (dict "name" (get (fromJson (include "redpanda.Name" (dict "a" (list $dot) ))) "r") "image" (printf `%s:%s` $values.image.repository (get (fromJson (include "redpanda.Tag" (dict "a" (list $dot) ))) "r")) "env" (get (fromJson (include "redpanda.StatefulSetRedpandaEnv" (dict "a" (list $dot) ))) "r") "lifecycle" (mustMergeOverwrite (dict ) (dict "postStart" (mustMergeOverwrite (dict ) (dict "exec" (mustMergeOverwrite (dict ) (dict "command" (list `/bin/bash` `-c` (join "\n" (list (printf `timeout -v %d bash -x /var/lifecycle/postStart.sh` ((div ($values.statefulset.terminationGracePeriodSeconds | int) (2 | int)) | int)) `true` ``))) )) )) "preStop" (mustMergeOverwrite (dict ) (dict "exec" (mustMergeOverwrite (dict ) (dict "command" (list `/bin/bash` `-c` (join "\n" (list (printf `timeout -v %d bash -x /var/lifecycle/preStop.sh` ((div ($values.statefulset.terminationGracePeriodSeconds | int) (2 | int)) | int)) `true # do not fail and cause the pod to terminate` ``))) )) )) )) "startupProbe" (mustMergeOverwrite (dict ) (mustMergeOverwrite (dict ) (dict "exec" (mustMergeOverwrite (dict ) (dict "command" (list `/bin/sh` `-c` (join "\n" (list `set -e` (printf `RESULT=$(curl --silent --fail -k -m 5 %s "%s://%s/v1/status/ready")` (get (fromJson (include "redpanda.adminTLSCurlFlags" (dict "a" (list $dot) ))) "r") (get (fromJson (include "redpanda.adminInternalHTTPProtocol" (dict "a" (list $dot) ))) "r") (get (fromJson (include "redpanda.adminApiURLs" (dict "a" (list $dot) ))) "r")) `echo $RESULT` `echo $RESULT | grep ready` ``))) )) )) (dict "initialDelaySeconds" ($values.statefulset.startupProbe.initialDelaySeconds | int) "periodSeconds" ($values.statefulset.startupProbe.periodSeconds | int) "failureThreshold" ($values.statefulset.startupProbe.failureThreshold | int) )) "livenessProbe" (mustMergeOverwrite (dict ) (mustMergeOverwrite (dict ) (dict "exec" (mustMergeOverwrite (dict ) (dict "command" (list `/bin/sh` `-c` (printf `curl --silent --fail -k -m 5 %s "%s://%s/v1/status/ready"` (get (fromJson (include "redpanda.adminTLSCurlFlags" (dict "a" (list $dot) ))) "r") (get (fromJson (include "redpanda.adminInternalHTTPProtocol" (dict "a" (list $dot) ))) "r") (get (fromJson (include "redpanda.adminApiURLs" (dict "a" (list $dot) ))) "r"))) )) )) (dict "initialDelaySeconds" ($values.statefulset.livenessProbe.initialDelaySeconds | int) "periodSeconds" ($values.statefulset.livenessProbe.periodSeconds | int) "failureThreshold" ($values.statefulset.livenessProbe.failureThreshold | int) )) "command" (list `rpk` `redpanda` `start` (printf `--advertise-rpc-addr=%s:%d` $internalAdvertiseAddress ($values.listeners.rpc.port | int))) "volumeMounts" (concat (default (list ) (get (fromJson (include "redpanda.StatefulSetVolumeMounts" (dict "a" (list $dot) ))) "r")) (default (list ) $values.statefulset.extraVolumeMounts)) "securityContext" (get (fromJson (include "redpanda.ContainerSecurityContext" (dict "a" (list $dot) ))) "r") "resources" (mustMergeOverwrite (dict ) (dict )) )) -}}
+{{- if (not (get (fromJson (include "_shims.typeassertion" (dict "a" (list "bool" (dig `recovery_mode_enabled` false $values.config.node)) ))) "r")) -}}
+{{- $_ := (set $container "readinessProbe" (mustMergeOverwrite (dict ) (mustMergeOverwrite (dict ) (dict "exec" (mustMergeOverwrite (dict ) (dict "command" (list `/bin/sh` `-c` (join "\n" (list `set -x` `RESULT=$(rpk cluster health)` `echo $RESULT` `echo $RESULT | grep 'Healthy:.*true'` ``))) )) )) (dict "initialDelaySeconds" ($values.statefulset.readinessProbe.initialDelaySeconds | int) "timeoutSeconds" ($values.statefulset.readinessProbe.timeoutSeconds | int) "periodSeconds" ($values.statefulset.readinessProbe.periodSeconds | int) "successThreshold" ($values.statefulset.readinessProbe.successThreshold | int) "failureThreshold" ($values.statefulset.readinessProbe.failureThreshold | int) ))) -}}
+{{- end -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" "admin" "containerPort" ($values.listeners.admin.port | int) ))))) -}}
+{{- range $externalName, $external := $values.listeners.admin.external -}}
+{{- if (get (fromJson (include "redpanda.AdminExternal.IsEnabled" (dict "a" (list $external) ))) "r") -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" (printf "admin-%.8s" (lower $externalName)) "containerPort" ($external.port | int) ))))) -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" "http" "containerPort" ($values.listeners.http.port | int) ))))) -}}
+{{- range $externalName, $external := $values.listeners.http.external -}}
+{{- if (get (fromJson (include "redpanda.HTTPExternal.IsEnabled" (dict "a" (list $external) ))) "r") -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" (printf "http-%.8s" (lower $externalName)) "containerPort" ($external.port | int) ))))) -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" "kafka" "containerPort" ($values.listeners.kafka.port | int) ))))) -}}
+{{- range $externalName, $external := $values.listeners.kafka.external -}}
+{{- if (get (fromJson (include "redpanda.KafkaExternal.IsEnabled" (dict "a" (list $external) ))) "r") -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" (printf "kafka-%.8s" (lower $externalName)) "containerPort" ($external.port | int) ))))) -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" "rpc" "containerPort" ($values.listeners.rpc.port | int) ))))) -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" "schemaregistry" "containerPort" ($values.listeners.schemaRegistry.port | int) ))))) -}}
+{{- range $externalName, $external := $values.listeners.schemaRegistry.external -}}
+{{- if (get (fromJson (include "redpanda.SchemaRegistryExternal.IsEnabled" (dict "a" (list $external) ))) "r") -}}
+{{- $_ := (set $container "ports" (concat (default (list ) $container.ports) (list (mustMergeOverwrite (dict "containerPort" 0 ) (dict "name" (printf "schema-%.8s" (lower $externalName)) "containerPort" ($external.port | int) ))))) -}}
+{{- end -}}
+{{- end -}}
+{{- if (and (get (fromJson (include "redpanda.Storage.IsTieredStorageEnabled" (dict "a" (list $values.storage) ))) "r") (ne (get (fromJson (include "redpanda.storageTieredMountType" (dict "a" (list $dot) ))) "r") "none")) -}}
+{{- $name := "tiered-storage-dir" -}}
+{{- if (and (ne $values.storage.persistentVolume (coalesce nil)) (ne $values.storage.persistentVolume.nameOverwrite "")) -}}
+{{- $name = $values.storage.persistentVolume.nameOverwrite -}}
+{{- end -}}
+{{- $_ := (set $container "volumeMounts" (concat (default (list ) $container.volumeMounts) (list (mustMergeOverwrite (dict "name" "" "mountPath" "" ) (dict "name" $name "mountPath" (get (fromJson (include "redpanda.storageTieredCacheDirectory" (dict "a" (list $dot) ))) "r") ))))) -}}
+{{- end -}}
+{{- $_ := (set $container.resources "limits" (dict "cpu" $values.resources.cpu.cores "memory" $values.resources.memory.container.max )) -}}
+{{- if (ne $values.resources.memory.container.min (coalesce nil)) -}}
+{{- $_ := (set $container.resources "requests" (dict "cpu" $values.resources.cpu.cores "memory" $values.resources.memory.container.min )) -}}
+{{- end -}}
+{{- (dict "r" $container) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "redpanda.adminApiURLs" -}}
+{{- $dot := (index .a 0) -}}
+{{- range $_ := (list 1) -}}
+{{- $values := $dot.Values.AsMap -}}
+{{- (dict "r" (printf `${SERVICE_NAME}.%s:%d` (get (fromJson (include "redpanda.InternalDomain" (dict "a" (list $dot) ))) "r") ($values.listeners.admin.port | int))) | toJson -}}
+{{- break -}}
+{{- end -}}
+{{- end -}}
+

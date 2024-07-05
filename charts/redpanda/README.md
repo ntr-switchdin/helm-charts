@@ -703,7 +703,7 @@ DEPRECATED Please use statefulset.podTemplate.annotations. Annotations are used 
 
 ### [statefulset.extraVolumeMounts](https://artifacthub.io/packages/helm/redpanda-data/redpanda?modal=values&path=statefulset.extraVolumeMounts)
 
-**Default:** `""`
+**Default:** `[]`
 
 ### [statefulset.extraVolumes](https://artifacthub.io/packages/helm/redpanda-data/redpanda?modal=values&path=statefulset.extraVolumes)
 

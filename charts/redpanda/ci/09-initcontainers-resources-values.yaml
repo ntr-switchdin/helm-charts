@@ -85,6 +85,6 @@ statefulset:
       secret:
         secretName: {{ (include "redpanda.fullname" . | trunc 50 ) }}-sts-lifecycle
         defaultMode: 0774
-  extraVolumeMounts: |-
+  extraVolumeMounts:
     - name: test-extra-volume
       mountPath: /fake/lifecycle

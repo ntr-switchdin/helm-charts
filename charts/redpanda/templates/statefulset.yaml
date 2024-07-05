@@ -33,6 +33,7 @@ limitations under the License.
 {{- end -}}
 
 {{- $initContainers := (get ((include "redpanda.StatefulSetInitContainers" (dict "a" (list .))) | fromJson) "r") -}}
+{{- $containers := (get ((include "redpanda.StatefulSetContainers" (dict "a" (list .))) | fromJson) "r") -}}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -67,108 +68,9 @@ spec:
 {{- toYaml $initContainers | nindent 8 }}
 {{- end }}
       containers:
-        - name: {{ template "redpanda.name" . }}
-          image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}
-          env: {{ get ((include "redpanda.StatefulSetRedpandaEnv" (dict "a" (list .))) | fromJson) "r" | toYaml | nindent 12 }}
-          # finish the lifecycle scripts with "true" to prevent them from terminating the pod prematurely
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - /bin/bash
-                  - -c
-                  - |
-                    timeout -v {{ div .Values.statefulset.terminationGracePeriodSeconds 2 }} bash -x /var/lifecycle/postStart.sh
-                    true
-            preStop:
-              exec:
-                command:
-                  - /bin/bash
-                  - -c
-                  - |
-                    timeout -v {{ div .Values.statefulset.terminationGracePeriodSeconds 2 }} bash -x /var/lifecycle/preStop.sh
-                    true # do not fail and cause the pod to terminate
-          # the startupProbe checks to see that the admin api is listening and that the broker has a node_id assigned. This
-          # check is only used to delay the start of the liveness and readiness probes until it passes.
-          startupProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  set -e
-                  RESULT=$(curl --silent --fail -k -m 5 {{ include "admin-tls-curl-flags" . }} "{{ include "admin-http-protocol" . }}://{{ include "admin-api-urls" . }}/v1/status/ready")
-                  echo $RESULT
-                  echo $RESULT | grep ready
-            initialDelaySeconds: {{ .Values.statefulset.startupProbe.initialDelaySeconds }}
-            failureThreshold: {{ .Values.statefulset.startupProbe.failureThreshold }}
-            periodSeconds: {{ .Values.statefulset.startupProbe.periodSeconds }}
-          # the livenessProbe just checks to see that the admin api is listening and returning 200s.
-          livenessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - curl --silent --fail -k -m 5 {{ include "admin-tls-curl-flags" . }} "{{ include "admin-http-protocol" . }}://{{ include "admin-api-urls" . }}/v1/status/ready"
-            initialDelaySeconds: {{ .Values.statefulset.livenessProbe.initialDelaySeconds }}
-            failureThreshold: {{ .Values.statefulset.livenessProbe.failureThreshold }}
-            periodSeconds: {{ .Values.statefulset.livenessProbe.periodSeconds }}
-          # the readiness probe just checks that the cluster is healthy according to rpk cluster health.
-          # It's ok that this cluster-wide check affects all the pods as it's only used for the
-          # PodDisruptionBudget and we don't want to roll any pods if the Redpanda cluster isn't healthy.
-          # https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets
-          # All services set `publishNotReadyAddresses:true` to prevent this from affecting cluster access
-        {{- if not ( dig "node" "recovery_mode_enabled" false .Values.config ) }}
-          readinessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  set -x
-                  RESULT=$(rpk cluster health)
-                  echo $RESULT
-                  echo $RESULT | grep 'Healthy:.*true'
-            initialDelaySeconds: {{ .Values.statefulset.readinessProbe.initialDelaySeconds }}
-            failureThreshold: {{ .Values.statefulset.readinessProbe.failureThreshold }}
-            periodSeconds: {{ .Values.statefulset.readinessProbe.periodSeconds }}
-            successThreshold: {{ .Values.statefulset.readinessProbe.initialDelaySeconds }}
-            timeoutSeconds: {{ .Values.statefulset.readinessProbe.timeoutSeconds }}
-        {{- end }}
-          command:
-            - rpk
-            - redpanda
-            - start
-            - "--advertise-rpc-addr={{ $internalAdvertiseAddress }}:{{ .Values.listeners.rpc.port }}"
-          ports:
-{{- range $name, $listener := .Values.listeners }}
-            - name: {{ lower $name }}
-              containerPort: {{ $listener.port }}
-  {{- range $externalName, $external := $listener.external }}
-  {{- if and $external.port (or $external.enabled (and $values.external.enabled (dig "enabled" true $external))) }}
-            - name: {{ lower $name | trunc 6 }}-{{ lower $externalName | trunc 8 }}
-              containerPort: {{ $external.port }}
-    {{- end }}
-  {{- end }}
+{{- if not (empty $containers) }}
+{{- toYaml $containers | nindent 8 }}
 {{- end }}
-          securityContext: {{ include "container-security-context" . | nindent 12 }}
-          volumeMounts: {{ (get ((include "redpanda.StatefulSetVolumeMounts" (dict "a" (list .))) | fromJson) "r") | toYaml | nindent 12 }}
-{{- if dig "extraVolumeMounts" false .Values.statefulset -}}
-  {{ tpl .Values.statefulset.extraVolumeMounts . | nindent 12 }}
-{{- end }}
-{{- if and (include "storage-tiered-config" .|fromJson).cloud_storage_enabled (ne (include "storage-tiered-mountType" .) "none") }}
-            - name: {{ default "tiered-storage-dir" .Values.storage.persistentVolume.nameOverwrite }}
-              mountPath: {{ include "tieredStorage.cacheDirectory" . }}
-{{- end }}
-          resources:
-{{- if hasKey .Values.resources.memory.container "min" }}
-            requests:
-              cpu: {{ .Values.resources.cpu.cores }}
-              memory: {{ .Values.resources.memory.container.min }}
-{{- end }}
-            limits:
-              cpu: {{ .Values.resources.cpu.cores }}
-              memory: {{ .Values.resources.memory.container.max }}
 {{- if .Values.statefulset.sideCars.configWatcher.enabled }}
         - name: config-watcher
           image: {{ .Values.image.repository }}:{{ template "redpanda.tag" . }}

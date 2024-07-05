@@ -496,20 +496,21 @@ type Statefulset struct {
 		MaxUnavailable int `json:"maxUnavailable" jsonschema:"required"`
 	} `json:"budget" jsonschema:"required"`
 	StartupProbe struct {
-		InitialDelaySeconds int `json:"initialDelaySeconds" jsonschema:"required"`
-		FailureThreshold    int `json:"failureThreshold" jsonschema:"required"`
-		PeriodSeconds       int `json:"periodSeconds" jsonschema:"required"`
+		InitialDelaySeconds int32 `json:"initialDelaySeconds" jsonschema:"required"`
+		FailureThreshold    int32 `json:"failureThreshold" jsonschema:"required"`
+		PeriodSeconds       int32 `json:"periodSeconds" jsonschema:"required"`
 	} `json:"startupProbe" jsonschema:"required"`
 	LivenessProbe struct {
-		InitialDelaySeconds int `json:"initialDelaySeconds" jsonschema:"required"`
-		FailureThreshold    int `json:"failureThreshold" jsonschema:"required"`
-		PeriodSeconds       int `json:"periodSeconds" jsonschema:"required"`
+		InitialDelaySeconds int32 `json:"initialDelaySeconds" jsonschema:"required"`
+		FailureThreshold    int32 `json:"failureThreshold" jsonschema:"required"`
+		PeriodSeconds       int32 `json:"periodSeconds" jsonschema:"required"`
 	} `json:"livenessProbe" jsonschema:"required"`
 	ReadinessProbe struct {
-		InitialDelaySeconds int `json:"initialDelaySeconds" jsonschema:"required"`
-		FailureThreshold    int `json:"failureThreshold" jsonschema:"required"`
-		PeriodSeconds       int `json:"periodSeconds" jsonschema:"required"`
-		// SuccessThreshold    int `json:"successThreshold"`
+		InitialDelaySeconds int32 `json:"initialDelaySeconds" jsonschema:"required"`
+		FailureThreshold    int32 `json:"failureThreshold" jsonschema:"required"`
+		PeriodSeconds       int32 `json:"periodSeconds" jsonschema:"required"`
+		SuccessThreshold    int32 `json:"successThreshold"`
+		TimeoutSeconds      int32 `json:"timeoutSeconds"`
 	} `json:"readinessProbe" jsonschema:"required"`
 	PodAffinity     map[string]any `json:"podAffinity" jsonschema:"required"`
 	PodAntiAffinity struct {
@@ -549,8 +550,8 @@ type Statefulset struct {
 			SecurityContext *corev1.SecurityContext `json:"securityContext"`
 		} `json:"controllers"`
 	} `json:"sideCars" jsonschema:"required"`
-	ExtraVolumes      string `json:"extraVolumes"`
-	ExtraVolumeMounts string `json:"extraVolumeMounts"`
+	ExtraVolumes      string               `json:"extraVolumes"`
+	ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
 	InitContainers    struct {
 		Configurator struct {
 			ExtraVolumeMounts []corev1.VolumeMount `json:"extraVolumeMounts"`
