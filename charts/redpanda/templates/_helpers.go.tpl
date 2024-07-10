@@ -43,7 +43,7 @@
 {{- range $_ := (list 1) -}}
 {{- $values := $dot.Values.AsMap -}}
 {{- $labels := (dict ) -}}
-{{- if (ne $values.commonLabels (coalesce nil)) -}}
+{{- if (and (hasKey $values "commonLabels") (not (empty $values.commonLabels))) -}}
 {{- $labels = $values.commonLabels -}}
 {{- end -}}
 {{- $defaults := (dict "helm.sh/chart" (get (fromJson (include "redpanda.Chart" (dict "a" (list $dot) ))) "r") "app.kubernetes.io/name" (get (fromJson (include "redpanda.Name" (dict "a" (list $dot) ))) "r") "app.kubernetes.io/instance" $dot.Release.Name "app.kubernetes.io/managed-by" $dot.Release.Service "app.kubernetes.io/component" (get (fromJson (include "redpanda.Name" (dict "a" (list $dot) ))) "r") ) -}}
